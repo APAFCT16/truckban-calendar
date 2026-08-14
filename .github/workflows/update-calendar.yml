@@ -35,11 +35,6 @@ jobs:
           name: truckban-diagnostic-data
           path: debug/truckban
 
-      - name: Upload calendar
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./public
-
   deploy:
     environment:
       name: github-pages
