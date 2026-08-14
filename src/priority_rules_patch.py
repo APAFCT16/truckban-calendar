@@ -4,8 +4,8 @@ import re
 p = Path("src/calendar_generator.py")
 s = p.read_text(encoding="utf-8")
 
-# Replace the entire France branch between country sections. This is deliberately
-# regex-based so the patch remains robust if formatting/comments change upstream.
+# Replace the entire France branch between country sections. This keeps the
+# verified 2026 rules independent of the stale generic TruckBAN summer dates.
 france_branch = '''        elif country == "France":
             # Verified 2026 national rules. The five additional summer Saturdays
             # are specific dates; do not extrapolate them to every Saturday.
@@ -21,18 +21,9 @@ france_branch = '''        elif country == "France":
             if d in summer_2026 and d.weekday() == 5:
                 add(E,country,"HGV ban — 2026 summer Saturday",d,"07:00","19:00",">7.5t goods vehicles; additional summer restriction across metropolitan France. Île-de-France and Auvergne-Rhône-Alpes route-specific rules also exist.")
 '''
-s2, n = re.subn(r'        elif country == "France":.*?(?=        elif country == "Czech Republic":)', france_branch, s, count=1, flags=re.S)
+pattern = r'        elif country == "France":.*?(?=        elif country == "Czech Republic":)'
+s2, n = re.subn(pattern, france_branch, s, count=1, flags=re.S)
 if n != 1:
     raise SystemExit(f"Expected France branch not found (matches={n})")
-s = s2
-
-# Add the official road-scope list to Germany event descriptions.
-old_de = '            if d.weekday() == 6 or h: add(E,country,"HGV ban — Sunday/public holiday",d,"00:00","22:00",">7.5t and trucks with trailers; nationwide subject to exemptions.")'
-new_de = '            if d.weekday() == 6 or h: add(E,country,"HGV ban — Sunday/public holiday",d,"00:00","22:00",">7.5t and trucks with trailers; nationwide subject to exemptions. Germany summer Saturday restrictions apply only on specified routes: A1, A2, A3, A4, A5, A6, A7, A8, A9/E51, A10, A45, A61, A67, A81, A92, A93, A99, A113, A115, A831, A980, A995, B31 and B96/E251.")'
-if "Germany summer Saturday restrictions apply only on specified routes" not in s:
-    if old_de not in s:
-        raise SystemExit("Expected Germany Sunday rule was not found; refusing to modify generator")
-    s = s.replace(old_de, new_de)
-
-p.write_text(s, encoding="utf-8")
-print("Applied verified France 2026 and Germany route-scope priority rules")
+p.write_text(s2, encoding="utf-8")
+print("Applied verified France 2026 rules")
