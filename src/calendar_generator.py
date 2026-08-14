@@ -1,5 +1,5 @@
 from __future__ import annotations
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from urllib.request import Request, urlopen
 from html.parser import HTMLParser
@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 COUNTRIES_FILE=Path("countries.json"); DEBUG_DIR=Path("debug/truckban"); PUBLIC_DIR=Path("public")
 BASE_URL="https://truckban.eu/"; YEAR=2026; END_YEAR=2027
 UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/139.0 Safari/537.36"
+TODAY=date(2026,8,14)
 
 class TextExtractor(HTMLParser):
     def __init__(self): super().__init__(); self.parts=[]
@@ -37,12 +38,14 @@ def add(events,country,title,day,st,en,desc,tz):
         h,m=map(int,hm.split(":"));return datetime(day.year,day.month,day.day,h,m,tzinfo=ZoneInfo(tz))
     a=make(st);b=make(en)
     if b<=a:b+=timedelta(days=1)
+    # Only publish events that have not already ended.
+    if b.date() < TODAY:return
     events.append((a,b,country,title,desc))
 
 def events_for_country(country):
     tz={"Austria":"Europe/Vienna","Croatia":"Europe/Zagreb","Czech Republic":"Europe/Prague","France":"Europe/Paris","Germany":"Europe/Berlin","Hungary":"Europe/Budapest","Italy":"Europe/Rome","Luxembourg":"Europe/Luxembourg","Poland":"Europe/Warsaw","Romania":"Europe/Bucharest","Slovakia":"Europe/Bratislava","Slovenia":"Europe/Ljubljana","Switzerland":"Europe/Zurich"}.get(country)
     if not tz:return []
-    E=[];hol=holiday_dates(country,[YEAR,END_YEAR]);d=date(YEAR,1,1);stop=date(END_YEAR,12,31)
+    E=[];hol=holiday_dates(country,[YEAR,END_YEAR]);d=TODAY;stop=date(END_YEAR,12,31)
     while d<=stop:
         h=d in hol
         if country=="Germany":
@@ -54,7 +57,7 @@ def events_for_country(country):
         elif country=="France":
             if d.weekday()==6 or h:add(E,country,"HGV ban — Sunday/public holiday",d,"00:00","22:00",">7.5t goods vehicles; national restriction.",tz)
             if d.weekday()==5:add(E,country,"HGV ban — Saturday",d,"22:00","24:00",">7.5t goods vehicles; weekend restriction.",tz)
-            if d in [date(2026,m,day) for m,day in [(7,11),(7,18),(7,25),(8,1),(8,8)]]:add(E,country,"HGV ban — 2026 summer Saturday",d,"07:00","19:00","Additional summer restriction; route-specific exemptions apply.",tz)
+            if d in [date(2026,m,day) for m,day in [(8,15)]]:add(E,country,"HGV ban — Assumption Day",d,"00:00","22:00",">7.5t goods vehicles; public-holiday restriction.",tz)
         elif country=="Czech Republic":
             if d.weekday()==6 or h:add(E,country,"HGV ban — Sunday/public holiday",d,"13:00","22:00",">7.5t on motorways, expressways and relevant first-class roads.",tz)
             if date(d.year,7,1)<=d<=date(d.year,8,31):
@@ -104,9 +107,10 @@ def events_for_country(country):
 
 def esc(s):return s.replace("\\","\\\\").replace(";","\\;").replace(",","\\,").replace("\n","\\n")
 def make_ics(events):
-    stamp=datetime.now(tz=ZoneInfo("UTC")).strftime("%Y%m%dT%H%M%SZ");L=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//TruckBAN Calendar//EN","CALSCALE:GREGORIAN","METHOD:PUBLISH","X-WR-CALNAME:TruckBAN HGV Restrictions","X-WR-CALDESC:Automatically updated TruckBAN heavy goods vehicle restriction calendar."]
+    stamp=datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ");L=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//TruckBAN Calendar//EN","CALSCALE:GREGORIAN","METHOD:PUBLISH","X-WR-CALNAME:TruckBAN HGV Restrictions","X-WR-CALDESC:Automatically updated TruckBAN heavy goods vehicle restriction calendar."]
     for i,(a,b,c,t,d) in enumerate(sorted(events)):
-        L += ["BEGIN:VEVENT",f"UID:{c.replace(' ','-')}-{a.strftime('%Y%m%d%H%M')}-{i}@truckban-calendar",f"DTSTAMP:{stamp}",f"DTSTART;TZID={a.tzinfo.key}:{a.strftime('%Y%m%dT%H%M%S')}",f"DTEND;TZID={b.tzinfo.key}:{b.strftime('%Y%m%dT%H%M%S')}",f"SUMMARY:{esc(c+' — '+t)}",f"DESCRIPTION:{esc(d)}","STATUS:CONFIRMED","END:VEVENT"]
+        au=a.astimezone(timezone.utc);bu=b.astimezone(timezone.utc)
+        L += ["BEGIN:VEVENT",f"UID:{c.replace(' ','-')}-{au.strftime('%Y%m%d%H%M')}-{i}@truckban-calendar",f"DTSTAMP:{stamp}",f"DTSTART:{au.strftime('%Y%m%dT%H%M%SZ')}",f"DTEND:{bu.strftime('%Y%m%dT%H%M%SZ')}",f"SUMMARY:{esc(c+' — '+t)}",f"DESCRIPTION:{esc(d)}","STATUS:CONFIRMED","END:VEVENT"]
     L.append("END:VCALENDAR");return "\r\n".join(L)+"\r\n"
 
 def main():
