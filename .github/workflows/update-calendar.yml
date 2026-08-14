@@ -26,11 +26,15 @@ jobs:
         run: python -m pip install --disable-pip-version-check holidays
       - name: Generate calendar
         run: python src/calendar_generator.py
+      - name: Make ICS compatible with Classic Outlook
+        run: python src/outlook_ics_compat.py
       - name: Validate calendar
         run: |
           test -s public/truckban.ics
           grep -q "BEGIN:VCALENDAR" public/truckban.ics
           grep -q "END:VCALENDAR" public/truckban.ics
+          ! grep -q "DTSTART;TZID=" public/truckban.ics
+          ! grep -q "DTEND;TZID=" public/truckban.ics
       - name: Upload TruckBAN diagnostic data
         uses: actions/upload-artifact@v4
         with:
