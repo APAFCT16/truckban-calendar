@@ -25,7 +25,8 @@ jobs:
       - name: Install dependencies
         run: python -m pip install --disable-pip-version-check holidays
       - name: Fix calendar generator runtime clock
-        run: sed -i 's/if b <= NOW: return/if b <= datetime.now(timezone.utc): return/' src/calendar_generator.py
+        run: |
+          sed -i 's/if b <= NOW: return/if b <= datetime.now(timezone.utc): return/' src/calendar_generator.py
       - name: Generate calendar
         run: python src/calendar_generator.py
       - name: Make ICS compatible with Classic Outlook
