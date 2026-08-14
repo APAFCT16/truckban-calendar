@@ -1,6 +1,9 @@
 name: Update TruckBAN Calendar
 
 on:
+  push:
+    branches:
+      - main
   schedule:
     - cron: "15 5 * * *"
   workflow_dispatch:
