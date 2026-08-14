@@ -1,6 +1,7 @@
 from pathlib import Path
 from urllib.request import Request, urlopen
 
+print("TRUCKBAN TEST VERSION 2")
 
 URL = "https://truckban.eu/Germany"
 
