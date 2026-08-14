@@ -27,6 +27,8 @@ jobs:
       - name: Fix calendar generator runtime clock
         run: |
           sed -i 's/if b <= NOW: return/if b <= datetime.now(timezone.utc): return/' src/calendar_generator.py
+      - name: Apply verified France priority rules
+        run: python src/priority_rules_patch.py
       - name: Generate calendar
         run: python src/calendar_generator.py
       - name: Make ICS compatible with Classic Outlook
