@@ -28,6 +28,12 @@ jobs:
 
       - name: Generate calendar
         run: python src/calendar_generator.py
+        
+        - name: Upload TruckBAN diagnostic data
+        uses: actions/upload-artifact@v4
+        with:
+          name: truckban-diagnostic-data
+          path: debug/truckban
 
       - name: Upload calendar
         uses: actions/upload-pages-artifact@v3
