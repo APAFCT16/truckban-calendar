@@ -23,7 +23,7 @@ def main():
         with urlopen(request, timeout=30) as response:
             content = response.read().decode("utf-8", errors="replace")
 
-        print(f"HTTP request succeeded.")
+        print("HTTP request succeeded.")
         print(f"Downloaded {len(content):,} characters.")
 
         Path("truckban_test.html").write_text(
