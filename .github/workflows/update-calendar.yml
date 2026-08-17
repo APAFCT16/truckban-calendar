@@ -29,6 +29,8 @@ jobs:
           sed -i 's/if b <= NOW: return/if b <= datetime.now(timezone.utc): return/' src/calendar_generator.py
       - name: Apply verified France priority rules
         run: python src/priority_rules_patch.py
+      - name: Apply verified country-specific rules
+        run: python src/country_rules_patch.py
       - name: Generate calendar
         run: python src/calendar_generator.py
       - name: Generate country feeds
@@ -42,8 +44,11 @@ jobs:
           grep -q "END:VCALENDAR" public/truckban.ics
           test -s public/countries/France.ics
           test -s public/countries/Germany.ics
+          test -s public/countries/Belgium.ics
           grep -q "X-WR-CALNAME:TruckBAN — France" public/countries/France.ics
           grep -q "X-WR-CALNAME:TruckBAN — Germany" public/countries/Germany.ics
+          grep -q "X-WR-CALNAME:TruckBAN — Belgium" public/countries/Belgium.ics
+          grep -q "Belgium has no general nationwide Sunday/public-holiday or weekend driving ban" public/countries/Belgium.ics
           ! grep -R -q "DTSTART;TZID=" public --include='*.ics'
           ! grep -R -q "DTEND;TZID=" public --include='*.ics'
       - name: Upload TruckBAN diagnostic data
