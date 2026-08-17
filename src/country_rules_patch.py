@@ -98,6 +98,7 @@ def patch_country_feed_description():
                 "Domestic traffic, traffic with a Luxembourg destination and transit towards Belgium are not covered by these bans; exemptions apply.",
                 1,
             )
+    '''
     if 'if country == "Belgium":' not in text or 'if country == "Luxembourg":' not in text:
         if marker not in text:
             raise SystemExit("Could not locate country feed description block")
