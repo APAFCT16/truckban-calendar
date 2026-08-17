@@ -30,8 +30,6 @@ def patch_generator():
         text = text.replace(marker, belgium + marker, 1)
 
     # Luxembourg bans are directional transit bans, not a general Sunday ban.
-    # They are triggered by Sundays and by the public holidays of France/Germany,
-    # because the legal restriction follows the destination country.
     old_lux = '''        elif country == "Luxembourg":
             if d.weekday() == 5:
                 add(E,country,"HGV ban — Saturday towards France",d,"21:30","24:00",">7.5t; direction France.")
@@ -53,9 +51,9 @@ def patch_generator():
 
             # Saturday and the eve of a relevant French/German public holiday.
             if d.weekday() == 5 or next_fr_holiday:
-                add(E,country,"HGV ban — transit towards France",d,"21:30","24:00",">7.5t; transit towards France from Belgium/Germany. Applies Saturday evenings and the eve of relevant French public holidays.")
+                add(E,country,"HGV ban — transit towards France",d,"21:30","24:00",">7.5t; transit towards France. Applies Saturday evenings and the eve of relevant French public holidays.")
             if d.weekday() == 5 or next_de_holiday:
-                add(E,country,"HGV ban — transit towards Germany",d,"23:30","24:00",">7.5t; transit towards Germany from Belgium/France. Applies Saturday evenings and the eve of relevant German public holidays.")
+                add(E,country,"HGV ban — transit towards Germany",d,"23:30","24:00",">7.5t; transit towards Germany. Applies Saturday evenings and the eve of relevant German public holidays.")
 
             # Relevant French/German public holiday itself. Do not treat the
             # Luxembourg-only National Day (23 June) as a ban trigger.
@@ -105,7 +103,7 @@ def patch_country_feed_description():
                 "Transit towards Germany is restricted Saturdays and the eve of relevant German public holidays from 23:30, and on Sundays/public holidays until 21:45. "
                 "Domestic traffic, traffic with a Luxembourg destination and transit towards Belgium are not covered by these bans; exemptions apply.",
                 1,
-            )'''
+            )
     if 'if country == "Belgium":' not in text or 'if country == "Luxembourg":' not in text:
         if marker not in text:
             raise SystemExit("Could not locate country feed description block")
