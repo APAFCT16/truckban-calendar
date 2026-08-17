@@ -2,7 +2,6 @@
 from pathlib import Path
 
 GEN = Path("src/calendar_generator.py")
-FEEDS = Path("src/country_feeds.py")
 
 
 def patch_generator():
@@ -19,9 +18,7 @@ def patch_generator():
     belgium = '''        elif country == "Belgium":
             # Belgium has no general nationwide Sunday/public-holiday or weekend
             # driving ban for standard HGV freight traffic. Keep the feed empty
-            # rather than creating misleading calendar events. Exceptional-load,
-            # ADR, weather and city/LEZ restrictions are handled separately in the
-            # country feed description and are not standard HGV driving bans.
+            # rather than creating misleading calendar events.
             pass
 '''
     if 'elif country == "Belgium":' not in text:
@@ -41,16 +38,13 @@ def patch_generator():
             next_day = d + timedelta(days=1)
             next_fr_holiday = next_day in holiday_dates("France", years)
             next_de_holiday = next_day in holiday_dates("Germany", years)
-
             if d.weekday() == 6:
                 add(E,country,"HGV ban — Sunday transit towards France",d,"00:00","21:45",">7.5t; transit towards France. Domestic traffic and traffic with a Luxembourg destination are not covered.")
                 add(E,country,"HGV ban — Sunday transit towards Germany",d,"00:00","21:45",">7.5t; transit towards Germany. Domestic traffic and traffic with a Luxembourg destination are not covered.")
-
             if d.weekday() == 5 or next_fr_holiday:
                 add(E,country,"HGV ban — transit towards France",d,"21:30","24:00",">7.5t; transit towards France. Applies Saturday evenings and the eve of relevant French public holidays.")
             if d.weekday() == 5 or next_de_holiday:
                 add(E,country,"HGV ban — transit towards Germany",d,"23:30","24:00",">7.5t; transit towards Germany. Applies Saturday evenings and the eve of relevant German public holidays.")
-
             if fr_holiday:
                 add(E,country,"HGV ban — public holiday transit towards France",d,"00:00","21:45",">7.5t; transit towards France; French public holiday.")
             if de_holiday:
@@ -64,49 +58,6 @@ def patch_generator():
     GEN.write_text(text, encoding="utf-8")
 
 
-def patch_country_feed_description():
-    text = FEEDS.read_text(encoding="utf-8")
-    marker = '''        ).replace(
-            "X-WR-CALDESC:Discrete TruckBAN HGV restrictions from today onward. ",
-            f"X-WR-CALDESC:TruckBAN restrictions for {country} from today onward. ",
-            1,
-        )'''
-    replacement = '''        ).replace(
-            "X-WR-CALDESC:Discrete TruckBAN HGV restrictions from today onward. ",
-            f"X-WR-CALDESC:TruckBAN restrictions for {country} from today onward. ",
-            1,
-        )
-        if country == "Belgium":
-            ics = ics.replace(
-                "X-WR-CALDESC:TruckBAN restrictions for Belgium from today onward. "
-                "Standing restrictions not repeated as individual events: Austria night ban 22:00-05:00 for HGVs >7.5t; "
-                "Switzerland night ban 22:00-05:00 for HGVs >3.5t; local/route-specific night and environmental restrictions "
-                "may also apply. Always check the country/route source and exemptions before dispatch.",
-                "X-WR-CALDESC:Belgium has no general nationwide Sunday/public-holiday or weekend driving ban for standard HGV freight traffic. "
-                "Exceptional-load, ADR, weather, route and city low-emission-zone restrictions are separate and are not represented as standard HGV ban events. "
-                "Always check the applicable Belgian route/source and exemptions before dispatch.",
-                1,
-            )
-        if country == "Luxembourg":
-            ics = ics.replace(
-                "X-WR-CALDESC:TruckBAN restrictions for Luxembourg from today onward. "
-                "Standing restrictions not repeated as individual events: Austria night ban 22:00-05:00 for HGVs >7.5t; "
-                "Switzerland night ban 22:00-05:00 for HGVs >3.5t; local/route-specific night and environmental restrictions "
-                "may also apply. Always check the country/route source and exemptions before dispatch.",
-                "X-WR-CALDESC:Luxembourg: >7.5t HGV transit towards France is restricted Saturdays and the eve of relevant French public holidays from 21:30, and on Sundays/public holidays until 21:45. "
-                "Transit towards Germany is restricted Saturdays and the eve of relevant German public holidays from 23:30, and on Sundays/public holidays until 21:45. "
-                "Domestic traffic, traffic with a Luxembourg destination and transit towards Belgium are not covered by these bans; exemptions apply.",
-                1,
-            )
-    '''
-    if 'if country == "Belgium":' not in text or 'if country == "Luxembourg":' not in text:
-        if marker not in text:
-            raise SystemExit("Could not locate country feed description block")
-        text = text.replace(marker, replacement, 1)
-        FEEDS.write_text(text, encoding="utf-8")
-
-
 if __name__ == "__main__":
     patch_generator()
-    patch_country_feed_description()
-    print("Applied verified Belgium and Luxembourg rules/feed-description patches")
+    print("Applied verified Belgium and Luxembourg country rules")
