@@ -31,15 +31,21 @@ jobs:
         run: python src/priority_rules_patch.py
       - name: Generate calendar
         run: python src/calendar_generator.py
-      - name: Make ICS compatible with Classic Outlook
+      - name: Generate country feeds
+        run: python src/country_feeds.py
+      - name: Make ICS feeds compatible with Classic Outlook
         run: python src/outlook_ics_compat.py
-      - name: Validate calendar
+      - name: Validate calendar feeds
         run: |
           test -s public/truckban.ics
           grep -q "BEGIN:VCALENDAR" public/truckban.ics
           grep -q "END:VCALENDAR" public/truckban.ics
-          ! grep -q "DTSTART;TZID=" public/truckban.ics
-          ! grep -q "DTEND;TZID=" public/truckban.ics
+          test -s public/countries/France.ics
+          test -s public/countries/Germany.ics
+          grep -q "X-WR-CALNAME:TruckBAN — France" public/countries/France.ics
+          grep -q "X-WR-CALNAME:TruckBAN — Germany" public/countries/Germany.ics
+          ! grep -R -q "DTSTART;TZID=" public --include='*.ics'
+          ! grep -R -q "DTEND;TZID=" public --include='*.ics'
       - name: Upload TruckBAN diagnostic data
         uses: actions/upload-artifact@v4
         with:
