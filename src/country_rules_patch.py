@@ -17,10 +17,11 @@ def patch_generator():
     marker = '        elif country == "Czech Republic":'
     belgium = '''        elif country == "Belgium":
             # Belgium has no general nationwide Sunday/public-holiday or weekend
-            # driving ban for standard HGV freight traffic.  Keep the feed empty
-            # rather than creating misleading calendar events.  Exceptional-load,
+            # driving ban for standard HGV freight traffic. Keep the feed empty
+            # rather than creating misleading calendar events. Exceptional-load,
             # ADR, weather and city/LEZ restrictions are handled separately in the
             # country feed description and are not standard HGV driving bans.
+            pass
 '''
     if 'elif country == "Belgium":' not in text:
         if marker not in text:
@@ -32,26 +33,31 @@ def patch_generator():
 
 def patch_country_feed_description():
     text = FEEDS.read_text(encoding="utf-8")
-    old = '''        ).replace(
+    marker = '''        ).replace(
             "X-WR-CALDESC:Discrete TruckBAN HGV restrictions from today onward. ",
             f"X-WR-CALDESC:TruckBAN restrictions for {country} from today onward. ",
             1,
         )'''
-    new = '''        ).replace(
+    replacement = '''        ).replace(
             "X-WR-CALDESC:Discrete TruckBAN HGV restrictions from today onward. ",
             f"X-WR-CALDESC:TruckBAN restrictions for {country} from today onward. ",
             1,
         )
         if country == "Belgium":
             ics = ics.replace(
-                " Always check the country/route source and exemptions before dispatch.",
-                " Belgium has no general nationwide Sunday/public-holiday or weekend driving ban for standard HGV freight traffic. Exceptional-load, ADR, weather, route and city low-emission-zone restrictions are separate and are not represented as standard HGV ban events. Always check the applicable Belgian route/source before dispatch.",
+                "X-WR-CALDESC:TruckBAN restrictions for Belgium from today onward. "
+                "Standing restrictions not repeated as individual events: Austria night ban 22:00-05:00 for HGVs >7.5t; "
+                "Switzerland night ban 22:00-05:00 for HGVs >3.5t; local/route-specific night and environmental restrictions "
+                "may also apply. Always check the country/route source and exemptions before dispatch.",
+                "X-WR-CALDESC:Belgium has no general nationwide Sunday/public-holiday or weekend driving ban for standard HGV freight traffic. "
+                "Exceptional-load, ADR, weather, route and city low-emission-zone restrictions are separate and are not represented as standard HGV ban events. "
+                "Always check the applicable Belgian route/source and exemptions before dispatch.",
                 1,
             )'''
     if 'if country == "Belgium":' not in text:
-        if old not in text:
+        if marker not in text:
             raise SystemExit("Could not locate country feed description block")
-        text = text.replace(old, new, 1)
+        text = text.replace(marker, replacement, 1)
         FEEDS.write_text(text, encoding="utf-8")
 
 
