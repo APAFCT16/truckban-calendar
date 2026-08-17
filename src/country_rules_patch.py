@@ -29,7 +29,6 @@ def patch_generator():
             raise SystemExit("Could not locate country rules insertion point")
         text = text.replace(marker, belgium + marker, 1)
 
-    # Luxembourg bans are directional transit bans, not a general Sunday ban.
     old_lux = '''        elif country == "Luxembourg":
             if d.weekday() == 5:
                 add(E,country,"HGV ban — Saturday towards France",d,"21:30","24:00",">7.5t; direction France.")
@@ -43,20 +42,15 @@ def patch_generator():
             next_fr_holiday = next_day in holiday_dates("France", years)
             next_de_holiday = next_day in holiday_dates("Germany", years)
 
-            # Every Sunday: affected transit toward France and Germany is banned
-            # from 00:00 until 21:45 local time.
             if d.weekday() == 6:
                 add(E,country,"HGV ban — Sunday transit towards France",d,"00:00","21:45",">7.5t; transit towards France. Domestic traffic and traffic with a Luxembourg destination are not covered.")
                 add(E,country,"HGV ban — Sunday transit towards Germany",d,"00:00","21:45",">7.5t; transit towards Germany. Domestic traffic and traffic with a Luxembourg destination are not covered.")
 
-            # Saturday and the eve of a relevant French/German public holiday.
             if d.weekday() == 5 or next_fr_holiday:
                 add(E,country,"HGV ban — transit towards France",d,"21:30","24:00",">7.5t; transit towards France. Applies Saturday evenings and the eve of relevant French public holidays.")
             if d.weekday() == 5 or next_de_holiday:
                 add(E,country,"HGV ban — transit towards Germany",d,"23:30","24:00",">7.5t; transit towards Germany. Applies Saturday evenings and the eve of relevant German public holidays.")
 
-            # Relevant French/German public holiday itself. Do not treat the
-            # Luxembourg-only National Day (23 June) as a ban trigger.
             if fr_holiday:
                 add(E,country,"HGV ban — public holiday transit towards France",d,"00:00","21:45",">7.5t; transit towards France; French public holiday.")
             if de_holiday:
