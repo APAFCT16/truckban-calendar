@@ -1,3 +1,4 @@
+# Belgium validation: standard HGV feed contains no nationwide weekend/public-holiday ban events.
 from pathlib import Path
 
 GEN = Path("src/calendar_generator.py")
