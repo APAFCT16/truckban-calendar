@@ -6,6 +6,7 @@ PUBLIC_DIR = Path("public")
 COUNTRY_DIR = PUBLIC_DIR / "countries"
 
 COUNTRY_DESCRIPTIONS = {
+    "Austria": "Austria: nationwide weekend and public-holiday HGV bans apply Saturdays 15:00-24:00 and Sundays/public holidays 00:00-22:00. They cover truck/trailer combinations where the truck or trailer exceeds 3.5t, and trucks, articulated vehicles and self-propelled work machines over 7.5t. A separate nationwide night ban applies daily 22:00-05:00 to HGVs over 7.5t, with an exception for qualifying low-noise vehicles carrying the required L-plate/certificate. Additional regional, route-specific and seasonal bans may also apply and are not yet represented in this standard nationwide feed.",
     "Belgium": "Belgium has no general nationwide Sunday/public-holiday or weekend driving ban for standard HGV freight traffic. Exceptional-load, ADR, weather, route and city low-emission-zone restrictions are separate and are not represented as standard HGV ban events.",
     "Luxembourg": "Luxembourg: >7.5t HGV transit towards France is restricted Saturdays and the eve of relevant French public holidays from 21:30, and on Sundays/public holidays until 21:45. Transit towards Germany is restricted Saturdays and the eve of relevant German public holidays from 23:30, and on Sundays/public holidays until 21:45. Domestic traffic, traffic with a Luxembourg destination and transit towards Belgium are not covered by these bans; exemptions apply.",
 }
@@ -34,8 +35,6 @@ def main():
             country,
             f"TruckBAN restrictions for {country} from today onward."
         )
-        # Replace the entire generated description line. This avoids inheriting
-        # generic country text from make_ics() in country-specific feeds.
         lines = ics.splitlines()
         replaced = False
         for i, line in enumerate(lines):
