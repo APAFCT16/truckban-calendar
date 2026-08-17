@@ -5,6 +5,11 @@ from calendar_generator import load_countries, country_events, make_ics
 PUBLIC_DIR = Path("public")
 COUNTRY_DIR = PUBLIC_DIR / "countries"
 
+COUNTRY_DESCRIPTIONS = {
+    "Belgium": "Belgium has no general nationwide Sunday/public-holiday or weekend driving ban for standard HGV freight traffic. Exceptional-load, ADR, weather, route and city low-emission-zone restrictions are separate and are not represented as standard HGV ban events.",
+    "Luxembourg": "Luxembourg: >7.5t HGV transit towards France is restricted Saturdays and the eve of relevant French public holidays from 21:30, and on Sundays/public holidays until 21:45. Transit towards Germany is restricted Saturdays and the eve of relevant German public holidays from 23:30, and on Sundays/public holidays until 21:45. Domestic traffic, traffic with a Luxembourg destination and transit towards Belgium are not covered by these bans; exemptions apply.",
+}
+
 
 def safe_name(country):
     return country.replace("/", "-").replace("\\", "-").replace(" ", "_")
@@ -24,11 +29,23 @@ def main():
             "X-WR-CALNAME:TruckBAN HGV Restrictions",
             f"X-WR-CALNAME:TruckBAN — {country}",
             1,
-        ).replace(
-            "X-WR-CALDESC:Discrete TruckBAN HGV restrictions from today onward. ",
-            f"X-WR-CALDESC:TruckBAN restrictions for {country} from today onward. ",
-            1,
         )
+        description = COUNTRY_DESCRIPTIONS.get(
+            country,
+            f"TruckBAN restrictions for {country} from today onward."
+        )
+        # Replace the entire generated description line. This avoids inheriting
+        # generic country text from make_ics() in country-specific feeds.
+        lines = ics.splitlines()
+        replaced = False
+        for i, line in enumerate(lines):
+            if line.startswith("X-WR-CALDESC:"):
+                lines[i] = "X-WR-CALDESC:" + description
+                replaced = True
+                break
+        if not replaced:
+            raise RuntimeError(f"Missing X-WR-CALDESC in generated feed for {country}")
+        ics = "\r\n".join(lines) + "\r\n"
         filename = safe_name(country) + ".ics"
         (COUNTRY_DIR / filename).write_text(ics, encoding="utf-8")
         links.append((country, filename, len(events)))
