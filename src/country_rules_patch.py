@@ -1,5 +1,6 @@
-# Verified Belgium, Luxembourg and Slovakia country-specific rules.
+# Verified Belgium, Luxembourg, Slovakia and Hungary country-specific rules.
 from pathlib import Path
+import re
 
 GEN = Path("src/calendar_generator.py")
 
@@ -55,37 +56,50 @@ def patch_generator():
     elif 'HGV ban — public holiday transit towards France' not in text:
         raise SystemExit("Could not locate Luxembourg rules block")
 
-    marker_sk = '        elif country == "Slovenia":'
-    old_sk = '''        elif country == "Slovakia":
-            if d.weekday() == 6 or h: add(E,country,"HGV ban — Sunday/public holiday",d,"00:00","22:00",">7.5t on motorways, trunk roads and Class 1 roads.")
-            if d.weekday() == 5 and date(d.year,7,1) <= d <= date(d.year,8,31): add(E,country,"HGV ban — summer Saturday",d,"07:00","19:00",">7.5t on motorways, trunk roads and Class 1 roads.")
-'''
-    new_sk = '''        elif country == "Slovakia":
-            # 2026 transition: until 31 Aug the ban is 00:00-22:00 on Sundays/public
-            # holidays and 07:00-19:00 on summer Saturdays. From 1 Sep 2026 the
-            # Sunday/public-holiday start moves to 06:00 and the summer Saturday
-            # start moves to 09:00 (summer Saturday end remains 19:00).
-            if d >= date(2026,9,1):
-                if d.weekday() == 6 or h:
-                    add(E,country,"HGV ban — Sunday/public holiday",d,"06:00","22:00",">7.5t and >3.5t truck combinations on motorways, trunk roads and Class 1 roads; 2026 rules from 1 September.")
-                if d.weekday() == 5 and date(d.year,7,1) <= d <= date(d.year,8,31):
-                    add(E,country,"HGV ban — summer Saturday",d,"09:00","19:00",">7.5t and >3.5t truck combinations on motorways, trunk roads and Class 1 roads; 2026 rules from 1 September.")
-            else:
-                if d.weekday() == 6 or h:
-                    add(E,country,"HGV ban — Sunday/public holiday",d,"00:00","22:00",">7.5t and >3.5t truck combinations on motorways, trunk roads and Class 1 roads; rules in force before 1 September 2026.")
-                if d.weekday() == 5 and date(d.year,7,1) <= d <= date(d.year,8,31):
-                    add(E,country,"HGV ban — summer Saturday",d,"07:00","19:00",">7.5t and >3.5t truck combinations on motorways, trunk roads and Class 1 roads; rules in force before 1 September 2026.")
-'''
-    if old_sk in text:
-        text = text.replace(old_sk, new_sk, 1)
-    elif '2026 transition: until 31 Aug' not in text:
-        if marker_sk not in text:
-            raise SystemExit("Could not locate Slovakia rules block")
-        text = text.replace(marker_sk, new_sk + marker_sk, 1)
+    # Hungary: model cross-midnight weekend/public-holiday restrictions at source.
+    # The existing add() helper cannot represent an end on the following day,
+    # so add a small span helper and use it for Hungary's continuous periods.
+    add_marker = '''    events.append((a, b, country, title, desc))\n\n\ndef add_holiday_rules'''
+    add_replacement = '''    events.append((a, b, country, title, desc))\n\n\ndef add_span(events, country, title, start_day, start, end_day, end, desc):\n    tz = TZ[country]\n    def make(day, hm):\n        if hm == "24:00":\n            return datetime(day.year, day.month, day.day, 0, 0, tzinfo=ZoneInfo(tz)) + timedelta(days=1)\n        h, m = map(int, hm.split(":"))\n        return datetime(day.year, day.month, day.day, h, m, tzinfo=ZoneInfo(tz))\n    a, b = make(start_day, start), make(end_day, end)\n    if b <= a:\n        b += timedelta(days=1)\n    if b <= NOW:\n        return\n    events.append((a, b, country, title, desc))\n\n\ndef add_holiday_rules'''
+    if 'def add_span(events, country, title' not in text:
+        if add_marker not in text:
+            raise SystemExit("Could not locate add() helper for Hungary span patch")
+        text = text.replace(add_marker, add_replacement, 1)
 
+    hungary_branch = '''        elif country == "Hungary":
+            # Summer weekends run continuously from Saturday 15:00 to Sunday 22:00.
+            # Public-holiday restrictions begin at 22:00 on the preceding day and
+            # run to 22:00 on the holiday (unless the holiday is Sunday, which is
+            # already covered by the Sunday rule).
+            if d.weekday() == 5:
+                end_day = d + timedelta(days=1)
+                if date(d.year,7,1) <= d <= date(d.year,8,31):
+                    add_span(E,country,"HGV ban — summer weekend",d,"15:00",end_day,"22:00",">7.5t; summer restriction runs from Saturday 15:00 to Sunday 22:00.")
+                else:
+                    add_span(E,country,"HGV ban — weekend",d,"22:00",end_day,"22:00",">7.5t; winter-period weekend restriction runs from Saturday 22:00 to Sunday 22:00. International Euro 3+ exemptions may apply in winter.")
+            if h and d.weekday() != 6:
+                prev = d - timedelta(days=1)
+                add_span(E,country,"HGV ban — public holiday",prev,"22:00",d,"22:00",">7.5t; public-holiday and consecutive-holiday rules apply.")
+'''
+    pattern = r'        elif country == "Hungary":.*?(?=        elif country == "Luxembourg":)'
+    text, n = re.subn(pattern, hungary_branch, text, count=1, flags=re.S)
+    if n != 1:
+        raise SystemExit(f"Expected Hungary branch not found (matches={n})")
+
+    # Put the manual temporary-exception warning directly on every Hungarian
+    # appointment, including the combined feed. This is deliberately a reminder,
+    # not an attempt to guess future government suspensions.
+    make_ics_marker = '''              f"SUMMARY:{esc(c+' — '+t)}",f"DESCRIPTION:{esc(d)}","STATUS:CONFIRMED","END:VEVENT"]'''
+    make_ics_replacement = '''              f"SUMMARY:{esc(c+' — '+t)}",\n              f"DESCRIPTION:{esc(d + (' IMPORTANT: Temporary Hungarian government suspensions or partial releases may change this specific restriction. Check the latest official Hungarian information before dispatch.' if c == 'Hungary' else ''))}",\n              "STATUS:CONFIRMED","END:VEVENT"]'''
+    if 'Temporary Hungarian government suspensions or partial releases may change this specific restriction.' not in text:
+        if make_ics_marker not in text:
+            raise SystemExit("Could not locate ICS description line for Hungary alert patch")
+        text = text.replace(make_ics_marker, make_ics_replacement, 1)
+
+    # Keep the source timezone table patch idempotent and write the result.
     GEN.write_text(text, encoding="utf-8")
 
 
 if __name__ == "__main__":
     patch_generator()
-    print("Applied verified Belgium, Luxembourg and Slovakia country rules")
+    print("Applied verified Belgium, Luxembourg, Slovakia and Hungary country rules")
