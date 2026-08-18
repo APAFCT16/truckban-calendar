@@ -1,5 +1,6 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 from calendar_generator import load_countries, country_events, make_ics
 
 PUBLIC_DIR = Path("public")
@@ -17,6 +18,32 @@ COUNTRY_DESCRIPTIONS = {
 
 def safe_name(country):
     return country.replace("/", "-").replace("\\", "-").replace(" ", "_")
+
+
+def fix_hungary_summer_weekends(ics):
+    """Ensure Hungary summer weekend bans run Saturday 15:00 through Sunday 22:00 local."""
+    lines = ics.splitlines()
+    in_hungary_summer_event = False
+    dtstart = None
+    for i, line in enumerate(lines):
+        if line.startswith("SUMMARY:Hungary — HGV ban — summer weekend"):
+            in_hungary_summer_event = True
+            dtstart = None
+        elif in_hungary_summer_event and line.startswith("DTSTART:"):
+            dtstart = datetime.strptime(line[8:], "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+        elif in_hungary_summer_event and line.startswith("DTEND:") and dtstart is not None:
+            local_start = dtstart.astimezone(ZoneInfo("Europe/Budapest"))
+            local_end = datetime(
+                local_start.year, local_start.month, local_start.day,
+                22, 0, tzinfo=ZoneInfo("Europe/Budapest")
+            ) + timedelta(days=1)
+            lines[i] = "DTEND:" + local_end.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+            in_hungary_summer_event = False
+            dtstart = None
+        elif line == "END:VEVENT":
+            in_hungary_summer_event = False
+            dtstart = None
+    return "\r\n".join(lines) + "\r\n"
 
 
 def main():
@@ -48,6 +75,8 @@ def main():
         if not replaced:
             raise RuntimeError(f"Missing X-WR-CALDESC in generated feed for {country}")
         ics = "\r\n".join(lines) + "\r\n"
+        if country == "Hungary":
+            ics = fix_hungary_summer_weekends(ics)
         filename = safe_name(country) + ".ics"
         (COUNTRY_DIR / filename).write_text(ics, encoding="utf-8")
         links.append((country, filename, len(events)))
