@@ -44,13 +44,17 @@ jobs:
           grep -q "END:VCALENDAR" public/truckban.ics
           test -s public/countries/France.ics
           test -s public/countries/Germany.ics
+          test -s public/countries/Italy.ics
           test -s public/countries/Belgium.ics
           test -s public/countries/Luxembourg.ics
           grep -q "X-WR-CALNAME:TruckBAN — France" public/countries/France.ics
           grep -q "X-WR-CALNAME:TruckBAN — Germany" public/countries/Germany.ics
+          grep -q "X-WR-CALNAME:TruckBAN — Italy" public/countries/Italy.ics
           grep -q "X-WR-CALNAME:TruckBAN — Belgium" public/countries/Belgium.ics
           grep -q "X-WR-CALNAME:TruckBAN — Luxembourg" public/countries/Luxembourg.ics
           grep -q "Luxembourg" public/countries/Luxembourg.ics
+          grep -q "Italy" public/countries/Italy.ics
+          grep -q "7.5t" public/countries/Italy.ics
           ! grep -R -q "DTSTART;TZID=" public --include='*.ics'
           ! grep -R -q "DTEND;TZID=" public --include='*.ics'
       - name: Upload TruckBAN diagnostic data
