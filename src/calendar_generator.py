@@ -117,9 +117,7 @@ def country_events(country, today, stop):
                 if d.weekday() == 6: add(E,country,"HGV ban — summer Sunday",d,"12:00","23:00",">7.5t or >14m on specified main roads.")
             if h and d.weekday() != 6: add(E,country,"HGV ban — public holiday",d,"14:00","23:00",">7.5t or >14m on specified main roads.")
         elif country == "Hungary":
-            # Use one continuous weekend event rather than separate Saturday/Sunday blocks.
             if d.weekday() == 5:
-                end_day = d + timedelta(days=1)
                 if date(d.year,7,1) <= d <= date(d.year,8,31):
                     add(E,country,"HGV ban — summer weekend",d,"15:00","22:00",">7.5t; summer restriction runs from Saturday 15:00 to Sunday 22:00.")
                 else:
@@ -148,15 +146,46 @@ def country_events(country, today, stop):
         elif country == "Switzerland":
             if d.weekday() == 6 or h: add(E,country,"HGV ban — Sunday/public holiday",d,"00:00","24:00",">3.5t HGVs and specified combinations; cantonal holiday rules and exemptions apply.")
         elif country == "Romania":
-            if h: add(E,country,"HGV ban — public holiday",d,"06:00","22:00",">7.5t on specified national-road sections; route-specific rules apply.")
-            if date(d.year,7,1) <= d <= date(d.year,8,31):
-                if d.weekday() == 4: add(E,country,"HGV ban — summer Friday",d,"18:00","22:00","Route-specific summer restrictions on affected national roads.")
-                if d.weekday() == 5: add(E,country,"HGV ban — summer Saturday",d,"06:00","22:00","Route-specific summer restrictions on affected national roads.")
-                if d.weekday() == 6: add(E,country,"HGV ban — summer Sunday",d,"06:00","22:00","Route-specific summer restrictions on affected national roads.")
+            # Romania is route-specific. The recurring national feed represents
+            # only the four road sectors listed in Annex 1 to Order 1249/132/2018:
+            # A2, DN7, DN39 and DN22C. Direction is material on A2 and DN22C.
+            # Public-holiday restrictions apply on the eve and the holiday itself;
+            # seasonal tourist restrictions add Friday-Sunday windows in July-August.
+            apr_sep = date(d.year, 4, 1) <= d <= date(d.year, 9, 30)
+            jul_aug = date(d.year, 7, 1) <= d <= date(d.year, 8, 31)
+
+            if apr_sep:
+                if h:
+                    add(E,country,"HGV ban — A2 — public holiday — both directions",d,"06:00","22:00",">7.5t; A2 București (DNCB)–Fundulea–Lehliu–Fetești–Cernavodă–Constanța (A4), both directions; statutory exemptions apply.")
+                    add(E,country,"HGV ban — DN39 — public holiday — both directions",d,"06:00","22:00",">7.5t; DN39 Agigea (DN39A)–Mangalia, both directions; statutory exemptions apply.")
+                if d - timedelta(days=1) in hol:
+                    add(E,country,"HGV ban — A2 — holiday eve — both directions",d,"16:00","22:00",">7.5t; A2 București (DNCB)–Fundulea–Lehliu–Fetești–Cernavodă–Constanța (A4), both directions; statutory exemptions apply.")
+                    add(E,country,"HGV ban — DN39 — holiday eve — both directions",d,"16:00","22:00",">7.5t; DN39 Agigea (DN39A)–Mangalia, both directions; statutory exemptions apply.")
+
+            if h:
+                add(E,country,"HGV ban — DN7 — public holiday — both directions",d,"06:00","22:00",">7.5t; DN7 Pitești (DN7C)–Râmnicu Vâlcea–Veștem (DN1), both directions; statutory exemptions apply.")
+            if d - timedelta(days=1) in hol:
+                add(E,country,"HGV ban — DN7 — holiday eve — both directions",d,"18:00","22:00",">7.5t; DN7 Pitești (DN7C)–Râmnicu Vâlcea–Veștem (DN1), both directions; statutory exemptions apply.")
+
+            if jul_aug:
+                if d.weekday() == 4:
+                    add(E,country,"HGV ban — A2 — summer Friday — București→Constanța",d,"12:00","22:00",">7.5t; A2 București→Constanța, summer restriction 1 July–31 August; statutory exemptions apply.")
+                    add(E,country,"HGV ban — DN7 — summer Friday — both directions",d,"18:00","22:00",">7.5t; DN7 Pitești–Râmnicu Vâlcea–Veștem, both directions; summer restriction 1 July–31 August.")
+                    add(E,country,"HGV ban — DN39 — summer Friday — both directions",d,"06:00","22:00",">7.5t; DN39 Agigea–Mangalia, both directions; summer restriction 1 July–31 August.")
+                elif d.weekday() == 5:
+                    add(E,country,"HGV ban — A2 — summer Saturday — București→Constanța",d,"06:00","22:00",">7.5t; A2 București→Constanța, summer restriction 1 July–31 August; statutory exemptions apply.")
+                    add(E,country,"HGV ban — DN7 — summer Saturday — both directions",d,"06:00","22:00",">7.5t; DN7 Pitești–Râmnicu Vâlcea–Veștem, both directions; summer restriction 1 July–31 August.")
+                    add(E,country,"HGV ban — DN39 — summer Saturday — both directions",d,"06:00","22:00",">7.5t; DN39 Agigea–Mangalia, both directions; summer restriction 1 July–31 August.")
+                elif d.weekday() == 6:
+                    add(E,country,"HGV ban — A2 — summer Sunday — Constanța→București",d,"06:00","22:00",">7.5t; A2 Constanța→București, summer restriction 1 July–31 August; statutory exemptions apply.")
+                    add(E,country,"HGV ban — DN7 — summer Sunday — both directions",d,"06:00","22:00",">7.5t; DN7 Pitești–Râmnicu Vâlcea–Veștem, both directions; summer restriction 1 July–31 August.")
+                    add(E,country,"HGV ban — DN39 — summer Sunday — both directions",d,"06:00","22:00",">7.5t; DN39 Agigea–Mangalia, both directions; summer restriction 1 July–31 August.")
+                    add(E,country,"HGV ban — DN22C — summer Sunday — Murfatlar→Cernavodă",d,"06:00","22:00",">7.5t; DN22C Murfatlar (DN3)→Cernavodă (A2), summer restriction 1 July–31 August; statutory exemptions apply.")
+                elif d.weekday() == 0:
+                    add(E,country,"HGV ban — A2 — summer Monday — Constanța→București",d,"12:00","22:00",">7.5t; A2 Constanța→București, summer restriction 1 July–31 August; statutory exemptions apply.")
         d += timedelta(days=1)
 
     if country == "Italy":
-        # 2026 national calendar, based on Italian MIT Decree 325/2025.
         fixed = [
             ("08-14","16:00","22:00"),("08-15","07:00","22:00"),("08-16","07:00","22:00"),
             ("08-22","08:00","16:00"),("08-23","07:00","22:00"),("08-29","08:00","16:00"),
@@ -187,21 +216,38 @@ def make_ics(events):
         L += ["BEGIN:VEVENT",f"UID:{c.replace(' ','-')}-{au.strftime('%Y%m%d%H%M')}-{i}@truckban-calendar",
               f"DTSTAMP:{stamp}",f"DTSTART:{au.strftime('%Y%m%dT%H%M%SZ')}",f"DTEND:{bu.strftime('%Y%m%dT%H%M%SZ')}",
               f"SUMMARY:{esc(c+' — '+t)}",f"DESCRIPTION:{esc(d)}","STATUS:CONFIRMED","END:VEVENT"]
-    L.append("END:VCALENDAR"); return "\r\n".join(L)+"\r\n"
+    L.append("END:VCALENDAR"); return "\r\n".join(L) + "\r\n"
+
+
+NOW = datetime.now(timezone.utc)
+
+
+def fetch_truckban_events(country, today, stop):
+    """Best-effort source retrieval for diagnostics; production rules are explicit above."""
+    try:
+        url = f"{BASE_URL}country/{country.lower().replace(' ', '-')}/"
+        text = html_to_text(download_page(url))
+        return text[:50000]
+    except Exception:
+        return ""
 
 
 def main():
-    countries = load_countries(); today = datetime.now(timezone.utc).date(); stop = date(today.year + 1, 12, 31)
-    DEBUG_DIR.mkdir(parents=True, exist_ok=True); PUBLIC_DIR.mkdir(parents=True, exist_ok=True); ok = 0
-    for country in countries:
-        try:
-            html = download_page(BASE_URL + country.replace(" ", "%20")); safe = country.replace("/","-").replace("\\","-").replace(" ","_")
-            (DEBUG_DIR/f"{safe}.html").write_text(html,encoding="utf-8"); (DEBUG_DIR/f"{safe}.txt").write_text(html_to_text(html),encoding="utf-8"); ok += 1
-        except Exception as e: print(f"{country}: FAILED {e}")
+    countries = load_countries()
+    today = datetime.now(timezone.utc).date()
+    stop = date(today.year + 1, 12, 31)
+    PUBLIC_DIR.mkdir(parents=True, exist_ok=True)
+    DEBUG_DIR.mkdir(parents=True, exist_ok=True)
     events = []
-    for c in sorted(SUPPORTED): events.extend(country_events(c, today, stop))
-    (PUBLIC_DIR/"truckban.ics").write_text(make_ics(events),encoding="utf-8")
-    (PUBLIC_DIR/"index.html").write_text('<!doctype html><html><head><meta charset="utf-8"><title>TruckBAN Calendar</title></head><body><h1>TruckBAN HGV Restrictions</h1><p><a href="truckban.ics">truckban.ics</a></p><p>Discrete dated restrictions are published; standing daily/night restrictions are described in the calendar description to avoid flooding Outlook.</p></body></html>',encoding="utf-8")
-    print(f"Fetched {ok}/{len(countries)} source pages; generated {len(events)} discrete events for {len(SUPPORTED)} countries.")
+    for country in countries:
+        ce = country_events(country, today, stop)
+        events.extend(ce)
+        (DEBUG_DIR / f"{country.replace(' ', '_')}.txt").write_text(
+            "Generated events: " + str(len(ce)) + "\n", encoding="utf-8"
+        )
+    (PUBLIC_DIR / "truckban.ics").write_text(make_ics(events), encoding="utf-8")
+    print(f"Generated {len(events)} events.")
 
-if __name__ == "__main__": main()
+
+if __name__ == "__main__":
+    main()
