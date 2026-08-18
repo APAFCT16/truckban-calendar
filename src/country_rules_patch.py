@@ -76,9 +76,31 @@ def patch_generator():
     if n != 1:
         raise SystemExit(f"Expected Hungary branch not found (matches={n})")
 
+    # Czechia: use the statutory road scope and include the 3.5t-with-trailer
+    # vehicle class in every event description.
+    old_czech = '''        elif country == "Czech Republic":
+            if d.weekday() == 6 or h: add(E,country,"HGV ban — Sunday/public holiday",d,"13:00","22:00",">7.5t on motorways, expressways and 1st-class roads.")
+            if date(d.year,7,1) <= d <= date(d.year,8,31):
+                if d.weekday() == 4: add(E,country,"HGV ban — summer Friday",d,"17:00","21:00",">7.5t on affected roads.")
+                if d.weekday() == 5: add(E,country,"HGV ban — summer Saturday",d,"07:00","13:00",">7.5t on affected roads.")
+'''
+    new_czech = '''        elif country == "Czech Republic":
+            scope = ">7.5t, plus vehicles over 3.5t with a trailer/semi-trailer, on motorways and Class I roads; statutory exemptions apply."
+            if d.weekday() == 6 or h:
+                add(E,country,"HGV ban — Sunday/public holiday",d,"13:00","22:00",scope)
+            if date(d.year,7,1) <= d <= date(d.year,8,31):
+                if d.weekday() == 4:
+                    add(E,country,"HGV ban — summer Friday",d,"17:00","21:00",scope)
+                if d.weekday() == 5:
+                    add(E,country,"HGV ban — summer Saturday",d,"07:00","13:00",scope)
+'''
+    if old_czech not in text:
+        raise SystemExit("Expected Czech Republic branch not found")
+    text = text.replace(old_czech, new_czech, 1)
+
     GEN.write_text(text, encoding="utf-8")
 
 
 if __name__ == "__main__":
     patch_generator()
-    print("Applied verified Belgium, Luxembourg and Hungary country rules")
+    print("Applied verified Belgium, Luxembourg, Hungary and Czechia country rules")
