@@ -20,29 +20,33 @@ def safe_name(country):
     return country.replace("/", "-").replace("\\", "-").replace(" ", "_")
 
 
-def fix_hungary_summer_weekends(ics):
-    """Ensure Hungary summer weekend bans run Saturday 15:00 through Sunday 22:00 local and flag temporary exceptions."""
+def fix_hungary_feed(ics):
+    """Fix Hungary summer weekend end times and add a manual exception-check reminder."""
     lines = ics.splitlines()
+    in_hungary_event = False
     in_hungary_summer_event = False
     dtstart = None
+    alert = " IMPORTANT: Temporary Hungarian government suspensions or partial releases may change this specific restriction. Check the latest official Hungarian information before dispatch."
+
     for i, line in enumerate(lines):
-        if line.startswith("SUMMARY:Hungary — HGV ban — summer weekend"):
-            in_hungary_summer_event = True
+        if line.startswith("SUMMARY:Hungary — HGV ban — "):
+            in_hungary_event = True
+            in_hungary_summer_event = line.startswith("SUMMARY:Hungary — HGV ban — summer weekend")
             dtstart = None
-        elif in_hungary_summer_event and line.startswith("DTSTART:"):
+        elif in_hungary_event and line.startswith("DTSTART:"):
             dtstart = datetime.strptime(line[8:], "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
-        elif in_hungary_summer_event and line.startswith("DTEND:") and dtstart is not None:
+        elif in_hungary_event and in_hungary_summer_event and line.startswith("DTEND:") and dtstart is not None:
             local_start = dtstart.astimezone(ZoneInfo("Europe/Budapest"))
             local_end = datetime(
                 local_start.year, local_start.month, local_start.day,
                 22, 0, tzinfo=ZoneInfo("Europe/Budapest")
             ) + timedelta(days=1)
             lines[i] = "DTEND:" + local_end.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        elif in_hungary_summer_event and line.startswith("DESCRIPTION:"):
-            alert = " IMPORTANT: Temporary Hungarian government suspensions or partial releases may change this specific restriction. Check the latest official Hungarian information before dispatch."
+        elif in_hungary_event and line.startswith("DESCRIPTION:"):
             if alert not in line:
                 lines[i] = line + alert.replace(";", "\\;")
         elif line == "END:VEVENT":
+            in_hungary_event = False
             in_hungary_summer_event = False
             dtstart = None
     return "\r\n".join(lines) + "\r\n"
@@ -78,7 +82,7 @@ def main():
             raise RuntimeError(f"Missing X-WR-CALDESC in generated feed for {country}")
         ics = "\r\n".join(lines) + "\r\n"
         if country == "Hungary":
-            ics = fix_hungary_summer_weekends(ics)
+            ics = fix_hungary_feed(ics)
         filename = safe_name(country) + ".ics"
         (COUNTRY_DIR / filename).write_text(ics, encoding="utf-8")
         links.append((country, filename, len(events)))
