@@ -1,4 +1,4 @@
-# Verified Belgium and Luxembourg country-specific rules.
+# Verified Belgium, Luxembourg and Slovakia country-specific rules.
 from pathlib import Path
 
 GEN = Path("src/calendar_generator.py")
@@ -55,9 +55,37 @@ def patch_generator():
     elif 'HGV ban — public holiday transit towards France' not in text:
         raise SystemExit("Could not locate Luxembourg rules block")
 
+    marker_sk = '        elif country == "Slovenia":'
+    old_sk = '''        elif country == "Slovakia":
+            if d.weekday() == 6 or h: add(E,country,"HGV ban — Sunday/public holiday",d,"00:00","22:00",">7.5t on motorways, trunk roads and Class 1 roads.")
+            if d.weekday() == 5 and date(d.year,7,1) <= d <= date(d.year,8,31): add(E,country,"HGV ban — summer Saturday",d,"07:00","19:00",">7.5t on motorways, trunk roads and Class 1 roads.")
+'''
+    new_sk = '''        elif country == "Slovakia":
+            # 2026 transition: until 31 Aug the ban is 00:00-22:00 on Sundays/public
+            # holidays and 07:00-19:00 on summer Saturdays. From 1 Sep 2026 the
+            # Sunday/public-holiday start moves to 06:00 and the summer Saturday
+            # start moves to 09:00 (summer Saturday end remains 19:00).
+            if d >= date(2026,9,1):
+                if d.weekday() == 6 or h:
+                    add(E,country,"HGV ban — Sunday/public holiday",d,"06:00","22:00",">7.5t and >3.5t truck combinations on motorways, trunk roads and Class 1 roads; 2026 rules from 1 September.")
+                if d.weekday() == 5 and date(d.year,7,1) <= d <= date(d.year,8,31):
+                    add(E,country,"HGV ban — summer Saturday",d,"09:00","19:00",">7.5t and >3.5t truck combinations on motorways, trunk roads and Class 1 roads; 2026 rules from 1 September.")
+            else:
+                if d.weekday() == 6 or h:
+                    add(E,country,"HGV ban — Sunday/public holiday",d,"00:00","22:00",">7.5t and >3.5t truck combinations on motorways, trunk roads and Class 1 roads; rules in force before 1 September 2026.")
+                if d.weekday() == 5 and date(d.year,7,1) <= d <= date(d.year,8,31):
+                    add(E,country,"HGV ban — summer Saturday",d,"07:00","19:00",">7.5t and >3.5t truck combinations on motorways, trunk roads and Class 1 roads; rules in force before 1 September 2026.")
+'''
+    if old_sk in text:
+        text = text.replace(old_sk, new_sk, 1)
+    elif '2026 transition: until 31 Aug' not in text:
+        if marker_sk not in text:
+            raise SystemExit("Could not locate Slovakia rules block")
+        text = text.replace(marker_sk, new_sk + marker_sk, 1)
+
     GEN.write_text(text, encoding="utf-8")
 
 
 if __name__ == "__main__":
     patch_generator()
-    print("Applied verified Belgium and Luxembourg country rules")
+    print("Applied verified Belgium, Luxembourg and Slovakia country rules")
