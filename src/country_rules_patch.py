@@ -48,9 +48,11 @@ def patch_generator():
         raise SystemExit(f"Expected Luxembourg branch not found (matches={n})")
 
     # Add a helper capable of representing a restriction that crosses midnight.
+    # Do not depend on the workflow's runtime-clock sed step here: this helper
+    # is inserted after that step has already run.
     if 'def add_span(events, country, title, start_day' not in text:
         marker = '''    events.append((a, b, country, title, desc))\n\n\ndef add_holiday_rules'''
-        replacement = '''    events.append((a, b, country, title, desc))\n\n\ndef add_span(events, country, title, start_day, start, end_day, end, desc):\n    tz = TZ[country]\n    def make(day, hm):\n        if hm == "24:00":\n            return datetime(day.year, day.month, day.day, 0, 0, tzinfo=ZoneInfo(tz)) + timedelta(days=1)\n        h, m = map(int, hm.split(":"))\n        return datetime(day.year, day.month, day.day, h, m, tzinfo=ZoneInfo(tz))\n    a, b = make(start_day, start), make(end_day, end)\n    if b <= a:\n        b += timedelta(days=1)\n    if b <= NOW:\n        return\n    events.append((a, b, country, title, desc))\n\n\ndef add_holiday_rules'''
+        replacement = '''    events.append((a, b, country, title, desc))\n\n\ndef add_span(events, country, title, start_day, start, end_day, end, desc):\n    tz = TZ[country]\n    def make(day, hm):\n        if hm == "24:00":\n            return datetime(day.year, day.month, day.day, 0, 0, tzinfo=ZoneInfo(tz)) + timedelta(days=1)\n        h, m = map(int, hm.split(":"))\n        return datetime(day.year, day.month, day.day, h, m, tzinfo=ZoneInfo(tz))\n    a, b = make(start_day, start), make(end_day, end)\n    if b <= a:\n        b += timedelta(days=1)\n    if b <= datetime.now(timezone.utc):\n        return\n    events.append((a, b, country, title, desc))\n\n\ndef add_holiday_rules'''
         if marker not in text:
             raise SystemExit("Could not locate add() helper")
         text = text.replace(marker, replacement, 1)
