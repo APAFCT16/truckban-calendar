@@ -12,7 +12,7 @@ COUNTRY_DESCRIPTIONS = {
     "Luxembourg": "Luxembourg: >7.5t HGV transit towards France is restricted Saturdays and the eve of relevant French public holidays from 21:30, and on Sundays/public holidays until 21:45. Transit towards Germany is restricted Saturdays and the eve of relevant German public holidays from 23:30, and on Sundays/public holidays until 21:45. Domestic traffic, traffic with a Luxembourg destination and transit towards Belgium are not covered by these bans; exemptions apply.",
     "Slovakia": "Slovakia: on motorways, trunk roads and Class 1 roads, HGVs over 7.5t and truck combinations over 3.5t with a trailer/semi-trailer are restricted on Sundays and public holidays. In 2026 the restriction is 00:00-22:00 before 1 September, changing to 06:00-22:00 from 1 September. The summer Saturday restriction (1 July-31 August) is 07:00-19:00 before 1 September; from 1 September the statutory start changes to 09:00. Class III roads have separate permanent restrictions for vehicles over 12t. Exemptions and route-specific rules apply.",
     "Netherlands": "Netherlands: there is no general nationwide weekend, Sunday or public-holiday HGV driving ban. This feed therefore contains no standard nationwide HGV-ban events. Separate local restrictions, zero-emission zones, abnormal-load restrictions and other route-specific controls may apply and are not represented in this standard nationwide feed.",
-    "Hungary": "Hungary: nationwide HGV restrictions apply to vehicles over 7.5t. From 1 July to 31 August, the standard restriction runs from Saturday 15:00 to Sunday 22:00; from 1 September to 30 June, it normally runs from the preceding day 22:00 to Sunday/public-holiday 22:00. Public holidays can create longer continuous restriction periods. Statutory exemptions apply, including specific winter exemptions for qualifying international traffic. Temporary government suspensions or partial releases, including heat-related measures, are not treated as recurring rules and must be added separately when officially announced.",
+    "Hungary": "Hungary: nationwide HGV restrictions apply to vehicles over 7.5t. From 1 July to 31 August, the standard restriction runs from Saturday 15:00 to Sunday 22:00; from 1 September to 30 June, it normally runs from the preceding day 22:00 to Sunday/public-holiday 22:00. Public holidays can create longer continuous restriction periods. Statutory exemptions apply, including specific winter exemptions for qualifying international traffic. IMPORTANT: temporary Hungarian government suspensions or partial releases can change a particular date. Check the latest official Hungarian restriction information before dispatch; these temporary changes are not automatically represented in this recurring feed.",
 }
 
 
@@ -21,7 +21,7 @@ def safe_name(country):
 
 
 def fix_hungary_summer_weekends(ics):
-    """Ensure Hungary summer weekend bans run Saturday 15:00 through Sunday 22:00 local."""
+    """Ensure Hungary summer weekend bans run Saturday 15:00 through Sunday 22:00 local and flag temporary exceptions."""
     lines = ics.splitlines()
     in_hungary_summer_event = False
     dtstart = None
@@ -38,8 +38,10 @@ def fix_hungary_summer_weekends(ics):
                 22, 0, tzinfo=ZoneInfo("Europe/Budapest")
             ) + timedelta(days=1)
             lines[i] = "DTEND:" + local_end.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-            in_hungary_summer_event = False
-            dtstart = None
+        elif in_hungary_summer_event and line.startswith("DESCRIPTION:"):
+            alert = " IMPORTANT: Temporary Hungarian government suspensions or partial releases may change this specific restriction. Check the latest official Hungarian information before dispatch."
+            if alert not in line:
+                lines[i] = line + alert.replace(";", "\\;")
         elif line == "END:VEVENT":
             in_hungary_summer_event = False
             dtstart = None
