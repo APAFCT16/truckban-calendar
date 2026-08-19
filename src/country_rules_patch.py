@@ -2,6 +2,7 @@ from pathlib import Path
 import re
 
 GEN = Path("src/calendar_generator.py")
+FEEDS = Path("src/country_feeds.py")
 
 
 def patch_generator():
@@ -48,8 +49,6 @@ def patch_generator():
         raise SystemExit(f"Expected Luxembourg branch not found (matches={n})")
 
     # Add a helper capable of representing a restriction that crosses midnight.
-    # Do not depend on the workflow's runtime-clock sed step here: this helper
-    # is inserted after that step has already run.
     if 'def add_span(events, country, title, start_day' not in text:
         marker = '''    events.append((a, b, country, title, desc))\n\n\ndef add_holiday_rules'''
         replacement = '''    events.append((a, b, country, title, desc))\n\n\ndef add_span(events, country, title, start_day, start, end_day, end, desc):\n    tz = TZ[country]\n    def make(day, hm):\n        if hm == "24:00":\n            return datetime(day.year, day.month, day.day, 0, 0, tzinfo=ZoneInfo(tz)) + timedelta(days=1)\n        h, m = map(int, hm.split(":"))\n        return datetime(day.year, day.month, day.day, h, m, tzinfo=ZoneInfo(tz))\n    a, b = make(start_day, start), make(end_day, end)\n    if b <= a:\n        b += timedelta(days=1)\n    if b <= datetime.now(timezone.utc):\n        return\n    events.append((a, b, country, title, desc))\n\n\ndef add_holiday_rules'''
@@ -57,9 +56,7 @@ def patch_generator():
             raise SystemExit("Could not locate add() helper")
         text = text.replace(marker, replacement, 1)
 
-    # Hungary: continuous Saturday-to-Sunday periods and holiday-eve-to-holiday
-    # periods. Temporary government suspensions are handled as a manual-check
-    # warning rather than guessed automatically.
+    # Hungary: continuous Saturday-to-Sunday periods and holiday-eve-to-holiday periods.
     hungary_branch = '''        elif country == "Hungary":
             warning = " IMPORTANT: Temporary Hungarian government suspensions or partial releases may change this specific restriction. Check the latest official Hungarian information before dispatch."
             if d.weekday() == 5:
@@ -76,8 +73,7 @@ def patch_generator():
     if n != 1:
         raise SystemExit(f"Expected Hungary branch not found (matches={n})")
 
-    # Czechia: use the statutory road scope and include the 3.5t-with-trailer
-    # vehicle class in every event description.
+    # Czechia: use the statutory road scope and include the 3.5t-with-trailer vehicle class.
     old_czech = '''        elif country == "Czech Republic":
             if d.weekday() == 6 or h: add(E,country,"HGV ban — Sunday/public holiday",d,"13:00","22:00",">7.5t on motorways, expressways and 1st-class roads.")
             if date(d.year,7,1) <= d <= date(d.year,8,31):
@@ -98,9 +94,67 @@ def patch_generator():
         raise SystemExit("Expected Czech Republic branch not found")
     text = text.replace(old_czech, new_czech, 1)
 
+    # Poland: correct the national holiday list, holiday eves and the final
+    # summer Sunday. The Polish traffic-ban regulation does not include
+    # 6 January (Epiphany), even though it is a general public holiday.
+    poland_branch = '''        elif country == "Poland":
+            restricted_holidays = {
+                x for x in hol
+                if (x.month == 1 and x.day == 1)
+                or (x.month == 5 and x.day in (1, 3))
+                or (x.month == 8 and x.day == 15)
+                or (x.month == 11 and x.day in (1, 11))
+                or (x.month == 12 and x.day in (25, 26))
+            }
+            easter_days = {x for x in hol if x.weekday() == 6 and x.month in (3, 4)}
+            for easter_sunday in easter_days:
+                if easter_sunday in hol and easter_sunday + timedelta(days=1) in hol:
+                    restricted_holidays.add(easter_sunday)
+                    restricted_holidays.add(easter_sunday + timedelta(days=1))
+                    restricted_holidays.add(easter_sunday + timedelta(days=49))
+                    restricted_holidays.add(easter_sunday + timedelta(days=60))
+
+            eve_targets = {
+                x for x in restricted_holidays
+                if not (x.month == 1 and x.day == 1)
+                and not (x.month == 12 and x.day in (25, 26))
+            }
+            if d in restricted_holidays:
+                add(E,country,"HGV ban — public holiday",d,"08:00","22:00",">12t permissible maximum mass; nationwide, subject to statutory exemptions. Poland national restriction under the 31 July 2007 regulation.")
+            if d + timedelta(days=1) in eve_targets:
+                add(E,country,"HGV ban — public holiday eve",d,"18:00","22:00",">12t permissible maximum mass; nationwide, subject to statutory exemptions. Restriction applies on the day preceding the listed holiday under §2(2).")
+
+            summer_start = last_weekday(d.year,6,4)
+            summer_end = last_weekday(d.year,8,6)
+            if summer_start <= d <= summer_end:
+                if d.weekday() == 4:
+                    add(E,country,"HGV ban — summer Friday",d,"18:00","22:00",">12t permissible maximum mass; nationwide summer restriction. Statutory exemptions apply.")
+                if d.weekday() == 5:
+                    add(E,country,"HGV ban — summer Saturday",d,"08:00","14:00",">12t permissible maximum mass; nationwide summer restriction. Statutory exemptions apply.")
+                if d.weekday() == 6:
+                    add(E,country,"HGV ban — summer Sunday",d,"08:00","22:00",">12t permissible maximum mass; nationwide summer restriction. Statutory exemptions apply.")
+'''
+    text, n = re.subn(r'        elif country == "Poland":.*?(?=        elif country == "Slovakia":)', poland_branch, text, count=1, flags=re.S)
+    if n != 1:
+        raise SystemExit(f"Expected Poland branch not found (matches={n})")
+
     GEN.write_text(text, encoding="utf-8")
+
+
+def patch_feed_description():
+    text = FEEDS.read_text(encoding="utf-8")
+    if '"Poland":' in text:
+        text = re.sub(r'    "Poland": ".*?",\n', '', text, count=1)
+    marker = '    "Portugal": '
+    pos = text.find(marker)
+    if pos < 0:
+        raise SystemExit("Could not locate Portugal description")
+    desc = '    "Poland": "Poland: nationwide periodic HGV restrictions apply to vehicles and combinations over 12t permissible maximum mass, excluding buses. The national restriction is 08:00-22:00 on the specified public holidays; 18:00-22:00 on the eve of the specified holidays (excluding New Year and Christmas Day/Boxing Day); and during the summer period from the final Friday of June through the last Sunday of August, 18:00-22:00 Fridays, 08:00-14:00 Saturdays and 08:00-22:00 Sundays. 6 January (Epiphany) is a Polish public holiday but is not included in the HGV traffic-ban holiday list. Statutory exemptions include certain emergency, essential, perishable, dangerous-goods and other specified transport; this feed represents the recurring national restriction calendar only.",\n'
+    text = text[:pos] + desc + text[pos:]
+    FEEDS.write_text(text, encoding="utf-8")
 
 
 if __name__ == "__main__":
     patch_generator()
-    print("Applied verified Belgium, Luxembourg, Hungary and Czechia country rules")
+    patch_feed_description()
+    print("Applied verified Belgium, Luxembourg, Hungary, Czechia and Poland country rules")
