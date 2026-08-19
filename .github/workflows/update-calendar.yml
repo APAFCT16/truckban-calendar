@@ -80,6 +80,10 @@ jobs:
           grep -q "X-WR-CALNAME:TruckBAN — Romania" public/countries/Romania.ics
           grep -q "X-WR-CALNAME:TruckBAN — Serbia" public/countries/Serbia.ics
           grep -q "X-WR-CALNAME:TruckBAN — Spain" public/countries/Spain.ics
+          # Serbia is intentionally an empty national feed: no general
+          # nationwide recurring HGV ban exists for standard freight.
+          ! grep -q "BEGIN:VEVENT" public/countries/Serbia.ics
+          ! grep -q "Serbia — HGV ban" public/countries/Serbia.ics
           grep -q "Ponte 25 de Abril" public/countries/Portugal.ics
           grep -q "Gardunha Tunnel" public/countries/Portugal.ics
           grep -q "Porto VCI" public/countries/Portugal.ics
