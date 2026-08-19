@@ -44,6 +44,8 @@ jobs:
         run: python src/country_feeds.py
       - name: Make ICS feeds compatible with Classic Outlook
         run: python src/outlook_ics_compat.py
+      - name: Validate Poland feed
+        run: python src/validate_poland_feed.py
       - name: Validate calendar feeds
         run: |
           test -s public/truckban.ics
@@ -55,6 +57,7 @@ jobs:
           test -s public/countries/Czech_Republic.ics
           test -s public/countries/Belgium.ics
           test -s public/countries/Luxembourg.ics
+          test -s public/countries/Poland.ics
           test -s public/countries/Portugal.ics
           test -s public/countries/Romania.ics
           test -s public/countries/Spain.ics
@@ -64,6 +67,7 @@ jobs:
           grep -q "X-WR-CALNAME:TruckBAN — Czech Republic" public/countries/Czech_Republic.ics
           grep -q "X-WR-CALNAME:TruckBAN — Belgium" public/countries/Belgium.ics
           grep -q "X-WR-CALNAME:TruckBAN — Luxembourg" public/countries/Luxembourg.ics
+          grep -q "X-WR-CALNAME:TruckBAN — Poland" public/countries/Poland.ics
           grep -q "X-WR-CALNAME:TruckBAN — Portugal" public/countries/Portugal.ics
           grep -q "X-WR-CALNAME:TruckBAN — Romania" public/countries/Romania.ics
           grep -q "X-WR-CALNAME:TruckBAN — Spain" public/countries/Spain.ics
