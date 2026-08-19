@@ -40,8 +40,13 @@ def patch_generator():
             # are the restrictions applicable to dangerous-goods vehicles under
             # Portaria 281/2019, plus the new VCI Porto rule entering force on
             # 15 September 2026.
-            dangerous_scope = ">7.5t dangerous-goods vehicles subject to Portuguese ADR/orange-panel restrictions; statutory exemptions apply."
-            tanker_scope = "Heavy vehicles carrying dangerous goods in tanks; statutory exemptions apply."
+            #
+            # Important scope distinction: IMT describes the listed-road,
+            # Monday-access and Ponte 25 de Abril restrictions as applying to
+            # heavy vehicles carrying dangerous goods that must display an
+            # orange ADR panel. They are not defined by a >7.5t threshold.
+            dangerous_scope = "Heavy vehicles carrying dangerous goods and required to display an orange ADR panel; statutory exemptions apply."
+            tanker_scope = "Heavy vehicles carrying dangerous goods in tankers; statutory exemptions apply."
 
             # Portaria 281/2019, Art. 2 as amended by Portaria 163/2021:
             # tankers are prohibited nationwide on Sundays and national
@@ -101,9 +106,19 @@ def patch_generator():
 def patch_feed_description():
     text = FEEDS.read_text(encoding="utf-8")
     if '"Portugal": "Portugal:' in text:
+        # Keep the description current if the patch is re-run after an earlier
+        # Portugal description has already been inserted.
+        text = re.sub(
+            r'    "Portugal": ".*?",\n',
+            '    "Portugal": "Portugal: no general nationwide Sunday/public-holiday HGV ban for ordinary freight. This feed represents the recurring national restrictions for dangerous-goods vehicles under Portaria 281/2019 as amended by Portaria 163/2021: tankers are restricted nationwide on Sundays/public holidays, while heavy dangerous-goods vehicles required to display an orange ADR panel are restricted on listed roads and specified Lisbon/Porto access routes. It also includes the Ponte 25 de Abril and Gardunha Tunnel restrictions. From 15 September 2026 it includes the Porto VCI weekday restriction for qualifying heavy goods vehicles over 3.5t, with three or more axles and first-axle height >=1.1m. Statutory exemptions and special authorisations apply; local city restrictions outside these national rules are not automatically represented.",\n',
+            text,
+            count=1,
+        )
+        FEEDS.write_text(text, encoding="utf-8")
         return
     marker = 'COUNTRY_DESCRIPTIONS = {\n'
-    desc = '''    "Portugal": "Portugal: no general nationwide Sunday/public-holiday HGV ban for ordinary freight. This feed represents the recurring national restrictions for dangerous-goods vehicles under Portaria 281/2019 as amended by Portaria 163/2021, including Sunday/public-holiday, listed-road weekend/holiday, Monday city-access, 25 de Abril Bridge and Gardunha Tunnel restrictions. From 15 September 2026 it also includes the Porto VCI weekday restriction for qualifying heavy goods vehicles over 3.5t. Statutory exemptions and special authorisations apply; local city restrictions outside these national rules are not automatically represented.",\n'''
+    desc = '''    "Portugal": "Portugal: no general nationwide Sunday/public-holiday HGV ban for ordinary freight. This feed represents the recurring national restrictions for dangerous-goods vehicles under Portaria 281/2019 as amended by Portaria 163/2021: tankers are restricted nationwide on Sundays/public holidays, while heavy dangerous-goods vehicles required to display an orange ADR panel are restricted on listed roads and specified Lisbon/Porto access routes. It also includes the Ponte 25 de Abril and Gardunha Tunnel restrictions. From 15 September 2026 it includes the Porto VCI weekday restriction for qualifying heavy goods vehicles over 3.5t, with three or more axles and first-axle height >=1.1m. Statutory exemptions and special authorisations apply; local city restrictions outside these national rules are not automatically represented."
+'''
     if marker not in text:
         raise SystemExit("Could not locate COUNTRY_DESCRIPTIONS")
     text = text.replace(marker, marker + desc, 1)
