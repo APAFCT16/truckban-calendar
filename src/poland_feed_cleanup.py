@@ -1,8 +1,10 @@
 from pathlib import Path
 
 
-TARGET = "Poland"
 PUBLIC_DIR = Path("public")
+TARGET_SUMMARY = "SUMMARY:Poland — HGV ban — summer Sunday"
+TARGET_START = "DTSTART:20270815T060000Z"
+TARGET_END = "DTEND:20270815T200000Z"
 
 
 def clean_ics(path: Path) -> int:
@@ -16,18 +18,18 @@ def clean_ics(path: Path) -> int:
         nonlocal removed
         if not event:
             return
-        summary = next((x for x in event if x.startswith("SUMMARY:")), "")
-        dtstart = next((x for x in event if x.startswith("DTSTART:")), "")
-        dtend = next((x for x in event if x.startswith("DTEND:")), "")
-        duplicate = (
-            summary == "SUMMARY:Poland — HGV ban — summer Sunday"
-            and dtstart == "DTSTART:20270815T060000Z"
-            and dtend == "DTEND:20270815T200000Z"
-        )
-        if duplicate:
+
+        # Match the complete VEVENT rather than relying on a particular line
+        # order. This also survives any harmless generator reordering.
+        summary = next((x for x in event if x == TARGET_SUMMARY), "")
+        dtstart = next((x for x in event if x == TARGET_START), "")
+        dtend = next((x for x in event if x == TARGET_END), "")
+
+        if summary and dtstart and dtend:
             removed += 1
-        else:
-            out.extend(event)
+            return
+
+        out.extend(event)
 
     for line in lines:
         if line == "BEGIN:VEVENT":
@@ -40,7 +42,10 @@ def clean_ics(path: Path) -> int:
         else:
             out.append(line)
 
-    flush()
+    # A malformed trailing event should never silently disappear.
+    if event:
+        out.extend(event)
+
     path.write_text("\r\n".join(out) + "\r\n", encoding="utf-8")
     return removed
 
@@ -50,11 +55,14 @@ def main():
     total = 0
     for path in paths:
         if path.exists():
-            total += clean_ics(path)
-    if total:
-        print(f"Removed {total} redundant Poland summer-Sunday event(s) for 15 August 2027.")
-    else:
+            removed = clean_ics(path)
+            print(f"{path}: removed {removed} redundant Poland 15 August 2027 summer-Sunday event(s).")
+            total += removed
+
+    if total == 0:
         print("No redundant Poland 15 August 2027 summer-Sunday event found.")
+    else:
+        print(f"Removed {total} redundant Poland 15 August 2027 summer-Sunday event(s) in total.")
 
 
 if __name__ == "__main__":
