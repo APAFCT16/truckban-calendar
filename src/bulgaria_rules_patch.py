@@ -7,14 +7,20 @@ FEEDS = Path("src/country_feeds.py")
 def patch_generator():
     text = GEN.read_text(encoding="utf-8")
 
+    # Insert Bulgaria into the actual multiline TZ dictionary used by the
+    # current generator. The previous patch expected a one-line fragment that
+    # no longer exists, causing the build to stop before generation.
     if '"Bulgaria": "Europe/Sofia"' not in text:
-        old = '"Austria": "Europe/Vienna", "Croatia": "Europe/Zagreb", "Czech Republic": "Europe/Prague",'
-        new = '"Austria": "Europe/Vienna", "Bulgaria": "Europe/Sofia", "Croatia": "Europe/Zagreb", "Czech Republic": "Europe/Prague",'
-        if old not in text:
+        marker = 'TZ = {\n'
+        if marker not in text:
             raise SystemExit("Could not locate timezone dictionary for Bulgaria patch")
-        text = text.replace(old, new, 1)
+        text = text.replace(
+            marker,
+            marker + '    "Bulgaria": "Europe/Sofia",\n',
+            1,
+        )
 
-    # The generator builds SUPPORTED from TZ at module-load time.  Keep an
+    # The generator builds SUPPORTED from TZ at module-load time. Keep an
     # explicit runtime guard as well so Bulgaria cannot accidentally produce
     # an empty feed if the base generator changes its supported-country gate.
     if 'SUPPORTED.add("Bulgaria")' not in text:
