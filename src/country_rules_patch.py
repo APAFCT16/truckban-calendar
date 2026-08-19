@@ -94,9 +94,9 @@ def patch_generator():
         raise SystemExit("Expected Czech Republic branch not found")
     text = text.replace(old_czech, new_czech, 1)
 
-    # Poland: correct the national holiday list, holiday eves and the final
-    # summer Sunday. The Polish traffic-ban regulation does not include
-    # 6 January (Epiphany), even though it is a general public holiday.
+    # Poland: statutory holiday list, including Easter Monday, Pentecost and
+    # Corpus Christi; explicit holiday eves; and the final summer Sunday.
+    # 6 January is a public holiday but is deliberately NOT a traffic-ban holiday.
     poland_branch = '''        elif country == "Poland":
             restricted_holidays = {
                 x for x in hol
@@ -106,13 +106,27 @@ def patch_generator():
                 or (x.month == 11 and x.day in (1, 11))
                 or (x.month == 12 and x.day in (25, 26))
             }
-            easter_days = {x for x in hol if x.weekday() == 6 and x.month in (3, 4)}
-            for easter_sunday in easter_days:
-                if easter_sunday in hol and easter_sunday + timedelta(days=1) in hol:
-                    restricted_holidays.add(easter_sunday)
-                    restricted_holidays.add(easter_sunday + timedelta(days=1))
-                    restricted_holidays.add(easter_sunday + timedelta(days=49))
-                    restricted_holidays.add(easter_sunday + timedelta(days=60))
+
+            # Add the movable statutory traffic-ban holidays directly from the
+            # Gregorian Easter calculation instead of relying on holiday-library
+            # labels. This makes the recurring feed deterministic for future years.
+            a = d.year
+            aa = a % 19
+            bb = a // 100
+            cc = a % 100
+            dd = bb // 4
+            ee = bb % 4
+            ff = (bb + 8) // 25
+            gg = (bb - ff + 1) // 3
+            hh = (19 * aa + bb - dd - gg + 15) % 30
+            ii = cc // 4
+            kk = cc % 4
+            ll = (32 + 2 * ee + 2 * ii - hh - kk) % 7
+            mm = (aa + 11 * hh + 22 * ll) // 451
+            easter_month = (hh + ll - 7 * mm + 114) // 31
+            easter_day = ((hh + ll - 7 * mm + 114) % 31) + 1
+            easter = date(a, easter_month, easter_day)
+            restricted_holidays.update({easter, easter + timedelta(days=1), easter + timedelta(days=49), easter + timedelta(days=60)})
 
             eve_targets = {
                 x for x in restricted_holidays
