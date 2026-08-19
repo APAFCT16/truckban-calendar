@@ -1,5 +1,5 @@
 name: Update TruckBAN Calendar
-# Trigger rebuild after fixing the Spain route/date-specific rules patch.
+# Trigger rebuild after adding Poland feed regression validation.
 
 on:
   push:
@@ -125,4 +125,9 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        runs-on: ubuntu-latest
+        needs: build
+        steps:
+          - name: Deploy to GitHub Pages
+            id: deployment
+            uses: actions/deploy-pages@v4
