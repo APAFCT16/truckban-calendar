@@ -70,10 +70,12 @@ if __name__ == "__main__":
                 raise SystemExit("Poland feed incorrectly contains an HGV public-holiday ban on 6 January")
 
     # 2027 movable holidays: Pentecost and Corpus Christi, including their eves.
+    # In 2027 Easter Sunday is 28 March, Pentecost is 16 May and Corpus Christi
+    # is 27 May. The previous validation incorrectly used 3 June for Corpus Christi.
     find(E, "Poland — HGV ban — public holiday eve", date(2027, 5, 15), 18, 22)
     find(E, "Poland — HGV ban — public holiday", date(2027, 5, 16), 8, 22)
-    find(E, "Poland — HGV ban — public holiday eve", date(2027, 6, 2), 18, 22)
-    find(E, "Poland — HGV ban — public holiday", date(2027, 6, 3), 8, 22)
+    find(E, "Poland — HGV ban — public holiday eve", date(2027, 5, 26), 18, 22)
+    find(E, "Poland — HGV ban — public holiday", date(2027, 5, 27), 8, 22)
 
     # Summer 2027 must continue through the final Sunday of August.
     find(E, "Poland — HGV ban — summer Friday", date(2027, 8, 27), 18, 22)
