@@ -70,6 +70,14 @@ jobs:
           grep -q "25 de Abril Bridge" public/countries/Portugal.ics
           grep -q "Gardunha Tunnel" public/countries/Portugal.ics
           grep -q "Porto VCI" public/countries/Portugal.ics
+          # Gardunha is generated for every local Portugal calendar date.
+          # On the autumn DST changeover, midnight local converts to 23:00Z
+          # on the previous UTC date and the event spans 25 UTC hours. These
+          # assertions prevent a false 'missing date' regression in UTC audits.
+          grep -q "DTSTART:20261024T230000Z" public/countries/Portugal.ics
+          grep -q "DTEND:20261026T000000Z" public/countries/Portugal.ics
+          grep -q "DTSTART:20271030T230000Z" public/countries/Portugal.ics
+          grep -q "DTEND:20271101T000000Z" public/countries/Portugal.ics
           grep -q "A2" public/countries/Romania.ics
           grep -q "DN7" public/countries/Romania.ics
           grep -q "DN39" public/countries/Romania.ics
@@ -91,10 +99,6 @@ jobs:
         with:
           name: truckban-diagnostic-data
           path: debug/truckban
-      - name: Upload calendar
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: ./public
 
   deploy:
     environment:
