@@ -1,5 +1,5 @@
 name: Update TruckBAN Calendar
-# Trigger rebuild after adding Poland feed regression validation.
+# Trigger rebuild after adding Serbia baseline validation.
 
 on:
   push:
@@ -32,6 +32,8 @@ jobs:
         run: python src/priority_rules_patch.py
       - name: Apply verified country-specific rules
         run: python src/country_rules_patch.py
+      - name: Apply verified Serbia baseline
+        run: python src/serbia_rules_patch.py
       - name: Apply verified Portugal rules
         run: python src/portugal_rules_patch.py
       - name: Apply Spain country baseline
@@ -48,6 +50,8 @@ jobs:
         run: python src/outlook_ics_compat.py
       - name: Validate Poland feed
         run: python src/validate_poland_feed.py
+      - name: Validate Serbia feed
+        run: python src/validate_serbia_feed.py
       - name: Validate calendar feeds
         run: |
           test -s public/truckban.ics
@@ -62,6 +66,7 @@ jobs:
           test -s public/countries/Poland.ics
           test -s public/countries/Portugal.ics
           test -s public/countries/Romania.ics
+          test -s public/countries/Serbia.ics
           test -s public/countries/Spain.ics
           grep -q "X-WR-CALNAME:TruckBAN — France" public/countries/France.ics
           grep -q "X-WR-CALNAME:TruckBAN — Germany" public/countries/Germany.ics
@@ -72,22 +77,15 @@ jobs:
           grep -q "X-WR-CALNAME:TruckBAN — Poland" public/countries/Poland.ics
           grep -q "X-WR-CALNAME:TruckBAN — Portugal" public/countries/Portugal.ics
           grep -q "X-WR-CALNAME:TruckBAN — Romania" public/countries/Romania.ics
+          grep -q "X-WR-CALNAME:TruckBAN — Serbia" public/countries/Serbia.ics
           grep -q "X-WR-CALNAME:TruckBAN — Spain" public/countries/Spain.ics
           grep -q "25 de Abril Bridge" public/countries/Portugal.ics
           grep -q "Gardunha Tunnel" public/countries/Portugal.ics
           grep -q "Porto VCI" public/countries/Portugal.ics
-          # Portugal ADR scope: non-tanker restrictions are for heavy dangerous-goods
-          # vehicles required to display an orange ADR panel, not a blanket >7.5t rule.
           grep -q "orange ADR panel" public/countries/Portugal.ics
           ! grep -q ">7.5t dangerous-goods vehicles" public/countries/Portugal.ics
-          # The Porto VCI rule is local Portugal time converted to UTC for publication:
-          # 07:00-21:00 WEST on 15 September 2026 becomes 06:00-20:00Z.
           grep -q "DTSTART:20260915T060000Z" public/countries/Portugal.ics
           grep -q "DTEND:20260915T200000Z" public/countries/Portugal.ics
-          # Gardunha is generated for every local Portugal calendar date.
-          # On the autumn DST changeover, midnight local converts to 23:00Z
-          # on the previous UTC date and the event spans 25 UTC hours. These
-          # assertions prevent a false 'missing date' regression in UTC audits.
           grep -q "DTSTART:20261024T230000Z" public/countries/Portugal.ics
           grep -q "DTEND:20261026T000000Z" public/countries/Portugal.ics
           grep -q "DTSTART:20271030T230000Z" public/countries/Portugal.ics
@@ -96,8 +94,6 @@ jobs:
           grep -q "DN7" public/countries/Romania.ics
           grep -q "DN39" public/countries/Romania.ics
           grep -q "DN22C" public/countries/Romania.ics
-          # Romania feed is converted to UTC for Classic Outlook compatibility:
-          # 12:00 EEST -> 09:00Z, 06:00 EEST -> 03:00Z, 18:00 EEST -> 15:00Z.
           grep -q "T090000Z" public/countries/Romania.ics
           grep -q "T030000Z" public/countries/Romania.ics
           grep -q "T150000Z" public/countries/Romania.ics
