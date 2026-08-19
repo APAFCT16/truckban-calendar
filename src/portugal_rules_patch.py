@@ -48,17 +48,16 @@ def patch_generator():
 
             # Art. 3: all covered orange-panel dangerous-goods vehicles on the
             # listed roads, Fridays/Sundays/public holidays/eves 18:00-21:00.
-            # Tankers are additionally restricted on Fridays and holiday eves.
             listed = (
                 "EN 6 Lisbon–Cascais; EN 10 Infantado–Vila Franca de Xira; "
                 "EN 14 Maia–Braga; IC1 Coimbrões–Miramar; EN 209 Porto–Gondomar; "
                 "EN 1 Carvalhos–Vila Nova de Gaia (Santo Ovídio); EN 101 Braga–Vila Verde; "
                 "IC4/EN125 São João da Venda–Faro; EN125 Faro–Olhão"
             )
-            if d.weekday() == 4 or d.weekday() == 6 or h:
-                add(E,country,"HGV ban — dangerous goods — listed roads",d,"18:00","21:00",dangerous_scope + " Listed roads: " + listed + ". Applies Fridays, Sundays and national holidays; Art. 3.")
-            if d.weekday() == 4 or (d + __import__('datetime').timedelta(days=1) in hol):
-                add(E,country,"HGV ban — dangerous goods — holiday eve",d,"18:00","21:00",tanker_scope + " Listed roads: " + listed + ". Applies Fridays and eves of national holidays; Art. 3.")
+            holiday_eve = (d + timedelta(days=1)) in hol
+            if d.weekday() == 4 or d.weekday() == 6 or h or holiday_eve:
+                reason = "Friday" if d.weekday() == 4 else "Sunday/public holiday or holiday eve"
+                add(E,country,"HGV ban — dangerous goods — listed roads",d,"18:00","21:00",dangerous_scope + " Listed roads: " + listed + ". Applies on " + reason + "; Art. 3.")
 
             # Art. 4: Monday 07:00-10:00 inbound restrictions on specified
             # Lisbon/Porto access roads, except July and August.
@@ -73,8 +72,8 @@ def patch_generator():
 
             # Art. 5: dangerous-goods vehicles may use the 25 de Abril Bridge
             # and north viaduct only from 02:00-05:00 every day. Represent the
-            # prohibited periods as one cross-midnight event.
-            add_span(E,country,"HGV ban — dangerous goods — 25 de Abril Bridge",d,"05:00",d + __import__('datetime').timedelta(days=1),"02:00",dangerous_scope + " Ponte 25 de Abril and north viaduct; passage permitted only 02:00-05:00. Art. 5.")
+            # prohibited period as one cross-midnight event.
+            add_span(E,country,"HGV ban — dangerous goods — 25 de Abril Bridge",d,"05:00",d + timedelta(days=1),"02:00",dangerous_scope + " Ponte 25 de Abril and north viaduct; passage permitted only 02:00-05:00. Art. 5.")
 
             # Art. 6(2): dangerous-goods vehicles remain prohibited in the
             # Gardunha Tunnel until a new IMT decision changes that status.
