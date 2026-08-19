@@ -54,6 +54,7 @@ jobs:
         run: python src/validate_serbia_feed.py
       - name: Validate calendar feeds
         run: |
+          set -x
           test -s public/truckban.ics
           grep -q "BEGIN:VCALENDAR" public/truckban.ics
           grep -q "END:VCALENDAR" public/truckban.ics
