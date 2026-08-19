@@ -8,21 +8,13 @@ def patch_generator():
     text = GEN.read_text(encoding="utf-8")
 
     # Insert Bulgaria into the actual multiline TZ dictionary used by the
-    # current generator. The previous patch expected a one-line fragment that
-    # no longer exists, causing the build to stop before generation.
+    # current generator.
     if '"Bulgaria": "Europe/Sofia"' not in text:
         marker = 'TZ = {\n'
         if marker not in text:
             raise SystemExit("Could not locate timezone dictionary for Bulgaria patch")
-        text = text.replace(
-            marker,
-            marker + '    "Bulgaria": "Europe/Sofia",\n',
-            1,
-        )
+        text = text.replace(marker, marker + '    "Bulgaria": "Europe/Sofia",\n', 1)
 
-    # The generator builds SUPPORTED from TZ at module-load time. Keep an
-    # explicit runtime guard as well so Bulgaria cannot accidentally produce
-    # an empty feed if the base generator changes its supported-country gate.
     if 'SUPPORTED.add("Bulgaria")' not in text:
         marker = "SUPPORTED = set(TZ)"
         if marker not in text:
@@ -55,6 +47,15 @@ def patch_generator():
         text = text.replace(marker, branch + marker, 1)
 
     GEN.write_text(text, encoding="utf-8")
+    print("BULGARIA_DIAG: TZ entry:", '"Bulgaria": "Europe/Sofia"' in text)
+    print("BULGARIA_DIAG: SUPPORTED guard:", 'SUPPORTED.add("Bulgaria")' in text)
+    print("BULGARIA_DIAG: country branch:", 'elif country == "Bulgaria":' in text)
+    if 'elif country == "Bulgaria":' not in text:
+        print("BULGARIA_DIAG: Czech marker present:", '        elif country == "Czech Republic":' in text)
+        print("BULGARIA_DIAG: nearby branch markers:")
+        for line in text.splitlines():
+            if 'elif country ==' in line:
+                print(line)
 
 
 def patch_feed_description():
