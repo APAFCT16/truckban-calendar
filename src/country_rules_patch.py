@@ -94,8 +94,8 @@ def patch_generator():
         raise SystemExit("Expected Czech Republic branch not found")
     text = text.replace(old_czech, new_czech, 1)
 
-    # Poland: statutory holiday list, including Easter Monday, Pentecost and
-    # Corpus Christi; explicit holiday eves; and the final summer Sunday.
+    # Poland: statutory holiday list, including Easter Sunday/Monday, Pentecost
+    # and Corpus Christi; explicit holiday eves; and the final summer Sunday.
     # 6 January is a public holiday but is deliberately NOT a traffic-ban holiday.
     poland_branch = '''        elif country == "Poland":
             restricted_holidays = {
