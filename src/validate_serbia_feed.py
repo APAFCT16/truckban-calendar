@@ -18,8 +18,13 @@ for item in required:
         raise SystemExit(f"Missing Serbia feed marker: {item}")
 
 # Serbia has no general nationwide recurring HGV-ban events for standard freight.
-if "BEGIN:VEVENT" in text:
+# Keep the country feed deliberately empty: no VEVENT means Outlook cannot
+# populate the Serbia subscription with invented nationwide restrictions.
+if "BEGIN:VEVENT" in text or "Serbia — HGV ban" in text:
     raise SystemExit("Unexpected Serbia HGV-ban event: Serbia baseline should be an empty recurring national feed")
+
+if "DTSTART:" in text or "DTEND:" in text:
+    raise SystemExit("Unexpected Serbia event timing: Serbia baseline should contain no events")
 
 if "DTSTART;TZID=" in text or "DTEND;TZID=" in text:
     raise SystemExit("Serbia feed contains timezone-qualified DTSTART/DTEND; Classic Outlook requires UTC")
