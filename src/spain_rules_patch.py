@@ -25,22 +25,15 @@ def patch_generator():
         spain = '''        elif country == "Spain":
             # DGT 2026 Annex II: Spain has route/date/time-specific HGV
             # restrictions, not a generic nationwide Sunday/public-holiday ban.
-            # Only encode restrictions for named road sections, dates/periods,
-            # times and directions taken from the official DGT resolution.
             if d.year != 2026:
                 pass
             else:
-                # Fridays Jan-Mar and 4-18 Dec: N-230 towards France.
                 if ((1 <= d.month <= 3) or (d.month == 12 and 4 <= d.day <= 18)) and d.weekday() == 4:
-                    add(E,country,"HGV restriction — N-230 PK 64.1-116.1 / 119.5-120.9 / 133.6-149.2 — France",d,"17:00","24:00",">7.5t; N-230 named sections, direction France. 2026 DGT Annex II. Exemptions for qualifying local/base/residence movements apply.")
-
-                # Saturdays Jun-Aug: A-49, AP-4 and N-4 towards Cádiz/Ayamonte.
+                    add(E,country,"HGV restriction — N-230 PK 64.1-116.1 / 119.5-120.9 / 133.6-149.2 — France",d,"17:00","24:00",">7.5t; N-230 named sections, direction France. 2026 DGT Annex II.")
                 if 6 <= d.month <= 8 and d.weekday() == 5:
                     add(E,country,"HGV restriction — A-49 PK 0-23 — Ayamonte",d,"10:00","14:00",">7.5t; A-49 Camas–Huévar del Aljarafe, direction Ayamonte. 2026 DGT Annex II.")
                     add(E,country,"HGV restriction — AP-4 PK 13.5-78 — Cádiz",d,"10:00","13:00",">7.5t; AP-4 Dos Hermanas–Jerez de la Frontera, direction Cádiz. 2026 DGT Annex II.")
                     add(E,country,"HGV restriction — N-4 PK 573-627 — Cádiz",d,"10:00","13:00",">7.5t; N-4 Los Palacios y Villafranca–Jerez de la Frontera, direction Cádiz. 2026 DGT Annex II.")
-
-                # Saturdays, Sundays and applicable public holidays in Jul-Aug.
                 if 7 <= d.month <= 8 and (d.weekday() in (5, 6) or h):
                     add(E,country,"HGV restriction — A-483 PK 0-41.33 — both directions",d,"11:00","22:00",">7.5t; A-483 Bollullos Par del Condado–Matalascañas, both directions. 2026 DGT Annex II.")
                     add(E,country,"HGV restriction — A-497 PK 0-17.05 — both directions",d,"11:00","22:00",">7.5t; A-497 Huelva–Punta Umbría, both directions. 2026 DGT Annex II.")
@@ -49,15 +42,11 @@ def patch_generator():
                     add(E,country,"HGV restriction — A-370 PK 0-12.16 — both directions",d,"11:00","22:00",">7.5t; A-370 Los Gallardos–Garrucha, both directions. 2026 DGT Annex II.")
                     add(E,country,"HGV restriction — A-8 PK 139.2-169 — Santander",d,"11:00","14:00",">7.5t; A-8 Castro-Urdiales–Laredo, direction Santander. 2026 DGT Annex II.")
                     add(E,country,"HGV restriction — A-8 PK 169-139.2 — Bilbao",d,"16:00","22:00",">7.5t; A-8 Laredo–Castro-Urdiales, direction Bilbao. 2026 DGT Annex II.")
-
-                # Sundays in June.
                 if d.month == 6 and d.weekday() == 6:
                     add(E,country,"HGV restriction — A-49 PK 76.9-0 — Sevilla",d,"15:00","24:00",">7.5t; A-49 San Juan del Puerto–Camas, direction Sevilla. 2026 DGT Annex II.")
                     add(E,country,"HGV restriction — AP-4 PK 78-13.5 — Sevilla",d,"16:00","20:00",">7.5t; AP-4 Jerez de la Frontera–Dos Hermanas, direction Sevilla. 2026 DGT Annex II.")
                     add(E,country,"HGV restriction — N-4 PK 627-573 — Sevilla",d,"16:00","20:00",">7.5t; N-4 Jerez de la Frontera–Los Palacios y Villafranca, direction Sevilla. 2026 DGT Annex II.")
                     add(E,country,"HGV restriction — A-45 PK 142-115 — Córdoba",d,"17:00","24:00",">7.5t; A-45 Málaga–Alto Las Pedrizas, direction Córdoba. 2026 DGT Annex II.")
-
-                # Sundays/public holidays 28 Jun-6 Sep: approaches into Madrid.
                 if date(2026,6,28) <= d <= date(2026,9,6) and (d.weekday() == 6 or h):
                     madrid_routes = [
                         ("A-1", "118.3-11.8", "Boceguillas–Madrid (M-40)", "21:00", "23:00"),
@@ -76,9 +65,6 @@ def patch_generator():
                     ]
                     for road, pk, section, start, end in madrid_routes:
                         add(E,country,f"HGV restriction — {road} PK {pk} — {section}",d,start,end,f">7.5t; {road} {section}, direction Entry Madrid. 2026 DGT Annex II; applicable Sundays/public holidays only in the stated period.")
-
-                # Specific 2026 Semana Santa restrictions: keep only the
-                # route/date entries most relevant to long-haul traffic.
                 if d == date(2026,4,1):
                     for road, pk, section, start, end, direction in [
                         ("A-6/AP-6","11.65-61.3","Madrid (M-40)–San Rafael","16:00","22:00","Salida Madrid"),
