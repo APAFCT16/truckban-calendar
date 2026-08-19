@@ -9,20 +9,30 @@ def patch_generator():
 
     # Portugal uses mainland Europe/Lisbon local time; the normal calendar
     # pipeline converts these local restrictions to UTC for publication.
-    text = re.sub(
-        r'("Poland"\s*:\s*"Europe/Warsaw",\s*)("Romania"\s*:\s*"Europe/Bucharest",)',
-        r'\1"Portugal": "Europe/Lisbon", \2',
-        text,
-        count=1,
-    )
+    if '"Portugal": "Europe/Lisbon"' not in text:
+        marker = '    "Poland": "Europe/Warsaw",'
+        if marker not in text:
+            raise SystemExit("Could not locate Poland timezone entry")
+        text = text.replace(marker, marker + ' "Portugal": "Europe/Lisbon",', 1)
+
+    # Portugal must be included in the supported-country set. This is kept
+    # explicit because SUPPORTED is evaluated when calendar_generator.py is
+    # loaded, and a patch must not depend on fragile dictionary ordering.
+    if 'SUPPORTED.add("Portugal")' not in text:
+        marker = 'SUPPORTED = set(TZ)'
+        if marker not in text:
+            raise SystemExit("Could not locate SUPPORTED declaration")
+        text = text.replace(marker, marker + '\nSUPPORTED.add("Portugal")', 1)
 
     # Add Portugal to the holidays package country-code map.
-    text = re.sub(
-        r'("Romania"\s*:\s*"RO",)',
-        r'"Portugal": "PT", \1',
-        text,
-        count=1,
-    )
+    if '"Portugal": "PT"' not in text:
+        marker = '        codes = {'
+        if marker not in text:
+            raise SystemExit("Could not locate holiday country-code map")
+        # PT holidays are not currently used to manufacture ordinary national
+        # HGV bans here, but keeping the country available makes the rules
+        # deterministic if holiday-based Portugal rules are extended.
+        text = text.replace(marker, marker + '\n            "Portugal":"PT",', 1)
 
     # Insert the verified Portugal rules before Romania.
     if 'elif country == "Portugal":' not in text:
@@ -39,15 +49,12 @@ def patch_generator():
             tanker_scope = "Heavy vehicles carrying dangerous goods in tankers; statutory exemptions apply."
             listed_scope = "Heavy vehicles carrying dangerous goods covered by Portaria 281/2019, including tankers on Fridays and holiday eves."
 
-            # Art. 2 as amended by Portaria 163/2021: tankers are prohibited
-            # nationwide on Sundays and national holidays, except when the
-            # holiday falls on Saturday or Monday.
+            # Art. 2: tankers are prohibited nationwide on Sundays and national
+            # holidays, except where the statutory holiday/weekend conditions
+            # exclude the day.
             if (d.weekday() == 6) or (h and d.weekday() not in (0, 5)):
                 add(E,country,"HGV ban — dangerous goods — Sunday/public holiday",d,"00:00","24:00",tanker_scope + " Nationwide mainland Portugal; Portaria 281/2019 Art. 2.")
 
-            # Art. 3: complete listed-road set, Fridays/Sundays/public
-            # holidays/eves 18:00-21:00. Tankers are included on Fridays
-            # and holiday eves.
             listed = (
                 "EN6 Lisbon–Cascais; EN10 Infantado–Vila Franca de Xira; "
                 "EN14 Maia–Braga; EN15 Porto–Campo (A4); EN105 Porto–Alfena (IC24); "
