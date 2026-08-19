@@ -106,6 +106,8 @@ def patch_generator():
                     add(E,country,"HGV restriction — AP-4 PK 78-13.5 — Sevilla",d,"10:00","13:00",">7.5t; Jerez de la Frontera–Dos Hermanas, direction Sevilla. Specific date: 5 April 2026. 2026 DGT Annex II.")
                 if d == date(2026,4,6):
                     add(E,country,"HGV restriction — A-4 PK 17.3-120 — Salida Madrid",d,"07:00","15:00",">7.5t; Madrid (M-50)–Madridejos, direction Salida Madrid. Specific date: 6 April 2026 (Semana Santa). 2026 DGT Annex II.")
+'''
+        text = text.replace(marker, spain + marker, 1)
 
     GEN.write_text(text, encoding="utf-8")
 
