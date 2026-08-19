@@ -64,6 +64,11 @@ jobs:
           grep -q "DN7" public/countries/Romania.ics
           grep -q "DN39" public/countries/Romania.ics
           grep -q "DN22C" public/countries/Romania.ics
+          # Romania feed is converted to UTC for Classic Outlook compatibility:
+          # 12:00 EEST -> 09:00Z, 06:00 EEST -> 03:00Z, 18:00 EEST -> 15:00Z.
+          grep -q "T090000Z" public/countries/Romania.ics
+          grep -q "T030000Z" public/countries/Romania.ics
+          grep -q "T150000Z" public/countries/Romania.ics
           grep -q "Czech Republic" public/countries/Czech_Republic.ics
           grep -q "7.5t" public/countries/Czech_Republic.ics
           grep -q "17:00" public/countries/Czech_Republic.ics
