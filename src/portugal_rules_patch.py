@@ -59,8 +59,7 @@ def patch_generator():
             )
             holiday_eve = (d + timedelta(days=1)) in hol
             if d.weekday() == 4 or d.weekday() == 6 or h or holiday_eve:
-                reason = "Friday" if d.weekday() == 4 else "Sunday/public holiday or holiday eve"
-                add(E,country,"HGV ban — dangerous goods — listed roads",d,"18:00","21:00",dangerous_scope + " Listed roads: " + listed + ". Applies on " + reason + "; Art. 3.")
+                add(E,country,"HGV ban — dangerous goods — listed roads",d,"18:00","21:00",dangerous_scope + " Listed roads: " + listed + ". Applies on Fridays, Sundays, national holidays and eves of national holidays; Art. 3.")
 
             # Art. 4: Monday 07:00-10:00 inbound restrictions on specified
             # Lisbon/Porto access roads, except July and August.
@@ -80,6 +79,10 @@ def patch_generator():
 
             # Art. 6(2): dangerous-goods vehicles remain prohibited in the
             # Gardunha Tunnel until a new IMT decision changes that status.
+            # The rule is generated for every local Portugal calendar date,
+            # including DST transition dates. Publication converts the local
+            # event to UTC, so a midnight local event can legitimately have a
+            # previous UTC DTSTART and a 25-hour UTC span on the autumn changeover.
             add(E,country,"HGV ban — dangerous goods — Gardunha Tunnel",d,"00:00","24:00",dangerous_scope + " IP2 Gardunha Tunnel, Alpedrinha–Fundão. Prohibition remains in force under Art. 6(2).")
 
             # New national legislation: from 15 September 2026, qualifying
