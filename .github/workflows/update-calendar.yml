@@ -32,6 +32,8 @@ jobs:
         run: python src/priority_rules_patch.py
       - name: Apply verified country-specific rules
         run: python src/country_rules_patch.py
+      - name: Apply verified Portugal rules
+        run: python src/portugal_rules_patch.py
       - name: Apply Spain country baseline
         run: python src/spain_rules_patch.py
       - name: Apply Spain N-230 Sunday rule
@@ -53,6 +55,7 @@ jobs:
           test -s public/countries/Czech_Republic.ics
           test -s public/countries/Belgium.ics
           test -s public/countries/Luxembourg.ics
+          test -s public/countries/Portugal.ics
           test -s public/countries/Romania.ics
           test -s public/countries/Spain.ics
           grep -q "X-WR-CALNAME:TruckBAN — France" public/countries/France.ics
@@ -61,8 +64,12 @@ jobs:
           grep -q "X-WR-CALNAME:TruckBAN — Czech Republic" public/countries/Czech_Republic.ics
           grep -q "X-WR-CALNAME:TruckBAN — Belgium" public/countries/Belgium.ics
           grep -q "X-WR-CALNAME:TruckBAN — Luxembourg" public/countries/Luxembourg.ics
+          grep -q "X-WR-CALNAME:TruckBAN — Portugal" public/countries/Portugal.ics
           grep -q "X-WR-CALNAME:TruckBAN — Romania" public/countries/Romania.ics
           grep -q "X-WR-CALNAME:TruckBAN — Spain" public/countries/Spain.ics
+          grep -q "25 de Abril Bridge" public/countries/Portugal.ics
+          grep -q "Gardunha Tunnel" public/countries/Portugal.ics
+          grep -q "Porto VCI" public/countries/Portugal.ics
           grep -q "A2" public/countries/Romania.ics
           grep -q "DN7" public/countries/Romania.ics
           grep -q "DN39" public/countries/Romania.ics
