@@ -1,4 +1,5 @@
 name: Update TruckBAN Calendar
+# Trigger rebuild after fixing the Spain route/date-specific rules patch.
 
 on:
   push:
