@@ -10,17 +10,20 @@ def patch_generator():
 
     # Portugal uses mainland Europe/Lisbon local time; the normal calendar
     # pipeline converts these local restrictions to UTC for publication.
-    text = text.replace(
-        '"Poland": "Europe/Warsaw", "Romania": "Europe/Bucharest",',
-        '"Poland": "Europe/Warsaw", "Portugal": "Europe/Lisbon", "Romania": "Europe/Bucharest",',
-        1,
+    text = re.sub(
+        r'("Poland"\s*:\s*"Europe/Warsaw",\s*)("Romania"\s*:\s*"Europe/Bucharest",)',
+        r'\1"Portugal": "Europe/Lisbon", \2',
+        text,
+        count=1,
     )
 
-    # holidays package support for Portugal.
-    text = text.replace(
-        '"Romania":"RO","Slovakia":"SK",',
-        '"Portugal":"PT","Romania":"RO","Slovakia":"SK",',
-        1,
+    # Add Portugal to the holidays package country-code map. The source uses
+    # whitespace/newlines between entries, so use a whitespace-tolerant regex.
+    text = re.sub(
+        r'("Romania"\s*:\s*"RO",)',
+        r'"Portugal": "PT", \1',
+        text,
+        count=1,
     )
 
     # The country-specific Portugal branch is inserted before Romania so the
@@ -71,9 +74,9 @@ def patch_generator():
                 add(E,country,"HGV ban — dangerous goods — Monday city access",d,"07:00","10:00",dangerous_scope + " Inbound towards Lisbon or Porto on: " + access + ". Art. 4; no restriction in July/August.")
 
             # Art. 5: dangerous-goods vehicles may use the 25 de Abril Bridge
-            # and north viaduct only from 02:00-05:00 every day. Represent the
-            # prohibited period as one cross-midnight event.
-            add_span(E,country,"HGV ban — dangerous goods — 25 de Abril Bridge",d,"05:00",d + timedelta(days=1),"02:00",dangerous_scope + " Ponte 25 de Abril and north viaduct; passage permitted only 02:00-05:00. Art. 5.")
+            # and north viaduct only from 02:00-05:00 every day. The prohibited
+            # period is represented as one cross-midnight event (05:00-02:00).
+            add(E,country,"HGV ban — dangerous goods — 25 de Abril Bridge",d,"05:00","02:00",dangerous_scope + " Ponte 25 de Abril and north viaduct; passage permitted only 02:00-05:00. Art. 5.")
 
             # Art. 6(2): dangerous-goods vehicles remain prohibited in the
             # Gardunha Tunnel until a new IMT decision changes that status.
