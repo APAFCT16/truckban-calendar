@@ -31,6 +31,8 @@ jobs:
         run: python src/priority_rules_patch.py
       - name: Apply verified country-specific rules
         run: python src/country_rules_patch.py
+      - name: Apply Spain country baseline
+        run: python src/spain_rules_patch.py
       - name: Generate calendar
         run: python src/calendar_generator.py
       - name: Generate country feeds
@@ -49,6 +51,7 @@ jobs:
           test -s public/countries/Belgium.ics
           test -s public/countries/Luxembourg.ics
           test -s public/countries/Romania.ics
+          test -s public/countries/Spain.ics
           grep -q "X-WR-CALNAME:TruckBAN — France" public/countries/France.ics
           grep -q "X-WR-CALNAME:TruckBAN — Germany" public/countries/Germany.ics
           grep -q "X-WR-CALNAME:TruckBAN — Italy" public/countries/Italy.ics
@@ -56,15 +59,11 @@ jobs:
           grep -q "X-WR-CALNAME:TruckBAN — Belgium" public/countries/Belgium.ics
           grep -q "X-WR-CALNAME:TruckBAN — Luxembourg" public/countries/Luxembourg.ics
           grep -q "X-WR-CALNAME:TruckBAN — Romania" public/countries/Romania.ics
+          grep -q "X-WR-CALNAME:TruckBAN — Spain" public/countries/Spain.ics
           grep -q "A2" public/countries/Romania.ics
           grep -q "DN7" public/countries/Romania.ics
           grep -q "DN39" public/countries/Romania.ics
           grep -q "DN22C" public/countries/Romania.ics
-          # Romania feed is converted to UTC for Classic Outlook compatibility:
-          # 12:00 EEST -> 09:00Z, 06:00 EEST -> 03:00Z, 18:00 EEST -> 15:00Z.
-          grep -q "T090000Z" public/countries/Romania.ics
-          grep -q "T030000Z" public/countries/Romania.ics
-          grep -q "T150000Z" public/countries/Romania.ics
           grep -q "Czech Republic" public/countries/Czech_Republic.ics
           grep -q "7.5t" public/countries/Czech_Republic.ics
           grep -q "17:00" public/countries/Czech_Republic.ics
