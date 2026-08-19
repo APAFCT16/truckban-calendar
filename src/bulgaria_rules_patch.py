@@ -47,15 +47,6 @@ def patch_generator():
         text = text.replace(marker, branch + marker, 1)
 
     GEN.write_text(text, encoding="utf-8")
-    print("BULGARIA_DIAG: TZ entry:", '"Bulgaria": "Europe/Sofia"' in text)
-    print("BULGARIA_DIAG: SUPPORTED guard:", 'SUPPORTED.add("Bulgaria")' in text)
-    print("BULGARIA_DIAG: country branch:", 'elif country == "Bulgaria":' in text)
-    if 'elif country == "Bulgaria":' not in text:
-        print("BULGARIA_DIAG: Czech marker present:", '        elif country == "Czech Republic":' in text)
-        print("BULGARIA_DIAG: nearby branch markers:")
-        for line in text.splitlines():
-            if 'elif country ==' in line:
-                print(line)
 
 
 def patch_feed_description():
