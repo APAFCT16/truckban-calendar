@@ -20,12 +20,11 @@ def patch_generator():
             # does NOT include 6 January (Epiphany).
             restricted_holidays = {
                 x for x in hol
-                if x.month == 1 and x.day == 1
-                or x.month == 5 and x.day in (1, 3)
-                or x.month == 8 and x.day == 15
-                or x.month == 11 and x.day in (1, 11)
-                or x.month == 12 and x.day in (25, 26)
-                or x.month == 4 and x.weekday() in (5, 6)  # Easter in April in 2027
+                if (x.month == 1 and x.day == 1)
+                or (x.month == 5 and x.day in (1, 3))
+                or (x.month == 8 and x.day == 15)
+                or (x.month == 11 and x.day in (1, 11))
+                or (x.month == 12 and x.day in (25, 26))
             }
 
             # The two Easter days and Pentecost/Corpus Christi are movable;
@@ -54,10 +53,10 @@ def patch_generator():
 
             # §2(3): summer restriction runs from the Friday on which school
             # classes end (or the following Friday) through the last Sunday
-            # before classes resume. For the normal Polish school calendar this
-            # is represented by the last Friday of June through the last Sunday
-            # of August. The previous implementation ended on the last Saturday
-            # and therefore omitted the final summer Sunday.
+            # before classes resume. The current Polish school calendars place
+            # this at the final Friday of June through the final Sunday of
+            # August; using the final Sunday is important because the prior
+            # implementation stopped one day early.
             summer_start = last_weekday(d.year,6,4)
             summer_end = last_weekday(d.year,8,6)
             if summer_start <= d <= summer_end:
@@ -80,7 +79,6 @@ def patch_feed_description():
     pos = text.find(marker)
     if pos < 0:
         raise SystemExit("Could not locate Portugal description")
-    line_end = text.find('\n', pos)
     desc = '    "Poland": "Poland: nationwide periodic HGV restrictions apply to vehicles and combinations over 12t permissible maximum mass, excluding buses. The national restriction is 08:00-22:00 on the specified public holidays; 18:00-22:00 on the eve of the specified holidays (excluding New Year and Christmas Day/Boxing Day); and during the summer period from the final Friday of June through the last Sunday of August, 18:00-22:00 Fridays, 08:00-14:00 Saturdays and 08:00-22:00 Sundays. 6 January (Epiphany) is a Polish public holiday but is not included in the HGV traffic-ban holiday list. Statutory exemptions include certain emergency, essential, perishable, dangerous-goods and other specified transport; this feed represents the recurring national restriction calendar only.",\n'
     text = text[:pos] + desc + text[pos:]
     FEEDS.write_text(text, encoding="utf-8")
