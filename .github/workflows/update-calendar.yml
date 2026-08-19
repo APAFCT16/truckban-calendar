@@ -114,6 +114,7 @@ jobs:
       - name: Upload calendar
         uses: actions/upload-pages-artifact@v4
         with:
+          name: truckban-calendar
           path: ./public
 
   deploy:
@@ -125,9 +126,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        runs-on: ubuntu-latest
-        needs: build
-        steps:
-          - name: Deploy to GitHub Pages
-            id: deployment
-            uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v4
