@@ -52,6 +52,12 @@ jobs:
         run: python src/validate_poland_feed.py
       - name: Validate Serbia feed
         run: python src/validate_serbia_feed.py
+      - name: Diagnose generated Portugal feed
+        run: |
+          echo '--- Portugal VCI event(s) ---'
+          awk 'BEGIN{RS="END:VEVENT"} /Porto VCI/{print $0 "END:VEVENT"}' public/countries/Portugal.ics || true
+          echo '--- Portugal 15 September 2026 lines ---'
+          grep -n "20260915" public/countries/Portugal.ics || true
       - name: Validate calendar feeds
         run: |
           set -x
@@ -80,8 +86,6 @@ jobs:
           grep -q "X-WR-CALNAME:TruckBAN — Romania" public/countries/Romania.ics
           grep -q "X-WR-CALNAME:TruckBAN — Serbia" public/countries/Serbia.ics
           grep -q "X-WR-CALNAME:TruckBAN — Spain" public/countries/Spain.ics
-          # Serbia is intentionally an empty national feed: no general
-          # nationwide recurring HGV ban exists for standard freight.
           ! grep -q "BEGIN:VEVENT" public/countries/Serbia.ics
           ! grep -q "Serbia — HGV ban" public/countries/Serbia.ics
           grep -q "Ponte 25 de Abril" public/countries/Portugal.ics
@@ -104,9 +108,6 @@ jobs:
           grep -q "T150000Z" public/countries/Romania.ics
           grep -q "Czech Republic" public/countries/Czech_Republic.ics
           grep -q "7.5t" public/countries/Czech_Republic.ics
-          # Czech summer 2027 rules are stored in UTC after the Classic Outlook conversion:
-          # Friday 17:00-21:00 CEST = 15:00-19:00Z; Saturday 07:00-13:00 CEST = 05:00-11:00Z;
-          # Sunday 13:00-22:00 CEST = 11:00-20:00Z.
           grep -q "DTSTART:20270702T150000Z" public/countries/Czech_Republic.ics
           grep -q "DTEND:20270702T190000Z" public/countries/Czech_Republic.ics
           grep -q "DTSTART:20270703T050000Z" public/countries/Czech_Republic.ics
