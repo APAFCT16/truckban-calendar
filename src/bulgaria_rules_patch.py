@@ -14,6 +14,15 @@ def patch_generator():
             raise SystemExit("Could not locate timezone dictionary for Bulgaria patch")
         text = text.replace(old, new, 1)
 
+    # The generator builds SUPPORTED from TZ at module-load time.  Keep an
+    # explicit runtime guard as well so Bulgaria cannot accidentally produce
+    # an empty feed if the base generator changes its supported-country gate.
+    if 'SUPPORTED.add("Bulgaria")' not in text:
+        marker = "SUPPORTED = set(TZ)"
+        if marker not in text:
+            raise SystemExit("Could not locate SUPPORTED set for Bulgaria patch")
+        text = text.replace(marker, marker + '\nSUPPORTED.add("Bulgaria")', 1)
+
     if 'elif country == "Bulgaria":' not in text:
         marker = '        elif country == "Czech Republic":'
         if marker not in text:
