@@ -99,9 +99,15 @@ jobs:
           grep -q "T150000Z" public/countries/Romania.ics
           grep -q "Czech Republic" public/countries/Czech_Republic.ics
           grep -q "7.5t" public/countries/Czech_Republic.ics
-          grep -q "17:00" public/countries/Czech_Republic.ics
-          grep -q "07:00" public/countries/Czech_Republic.ics
-          grep -q "13:00" public/countries/Czech_Republic.ics
+          # Czech summer 2027 rules are stored in UTC after the Classic Outlook conversion:
+          # Friday 17:00-21:00 CEST = 15:00-19:00Z; Saturday 07:00-13:00 CEST = 05:00-11:00Z;
+          # Sunday 13:00-22:00 CEST = 11:00-20:00Z.
+          grep -q "DTSTART:20270702T150000Z" public/countries/Czech_Republic.ics
+          grep -q "DTEND:20270702T190000Z" public/countries/Czech_Republic.ics
+          grep -q "DTSTART:20270703T050000Z" public/countries/Czech_Republic.ics
+          grep -q "DTEND:20270703T110000Z" public/countries/Czech_Republic.ics
+          grep -q "DTSTART:20270704T110000Z" public/countries/Czech_Republic.ics
+          grep -q "DTEND:20270704T200000Z" public/countries/Czech_Republic.ics
           ! grep -R -q "DTSTART;TZID=" public --include='*.ics'
           ! grep -R -q "DTEND;TZID=" public --include='*.ics'
       - name: Upload TruckBAN diagnostic data
