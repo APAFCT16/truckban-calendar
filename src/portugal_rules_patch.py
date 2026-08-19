@@ -41,12 +41,14 @@ def patch_generator():
             # Portaria 281/2019, plus the new VCI Porto rule entering force on
             # 15 September 2026.
             #
-            # Important scope distinction: IMT describes the listed-road,
-            # Monday-access and Ponte 25 de Abril restrictions as applying to
-            # heavy vehicles carrying dangerous goods that must display an
-            # orange ADR panel. They are not defined by a >7.5t threshold.
+            # Important scope distinction: the listed-road, Monday-access and
+            # Ponte 25 de Abril restrictions cover heavy dangerous-goods vehicles
+            # required to display an orange ADR panel. Tankers are a separate
+            # covered class and must be retained in the listed-road Friday/eve
+            # rule as well as their nationwide Sunday/holiday rule.
             dangerous_scope = "Heavy vehicles carrying dangerous goods and required to display an orange ADR panel; statutory exemptions apply."
             tanker_scope = "Heavy vehicles carrying dangerous goods in tankers; statutory exemptions apply."
+            listed_scope = "Heavy vehicles carrying dangerous goods covered by Portaria 281/2019, including tankers on Fridays and holiday eves."
 
             # Portaria 281/2019, Art. 2 as amended by Portaria 163/2021:
             # tankers are prohibited nationwide on Sundays and national
@@ -54,17 +56,24 @@ def patch_generator():
             if (d.weekday() == 6) or (h and d.weekday() not in (0, 5)):
                 add(E,country,"HGV ban — dangerous goods — Sunday/public holiday",d,"00:00","24:00",tanker_scope + " Nationwide mainland Portugal; Portaria 281/2019 Art. 2.")
 
-            # Art. 3: all covered orange-panel dangerous-goods vehicles on the
-            # listed roads, Fridays/Sundays/public holidays/eves 18:00-21:00.
+            # Art. 3: covered dangerous-goods vehicles on the complete listed
+            # road set, Fridays/Sundays/public holidays/eves 18:00-21:00.
+            # Tankers are expressly included on Fridays and holiday eves.
             listed = (
-                "EN 6 Lisbon–Cascais; EN 10 Infantado–Vila Franca de Xira; "
-                "EN 14 Maia–Braga; IC1 Coimbrões–Miramar; EN 209 Porto–Gondomar; "
-                "EN 1 Carvalhos–Vila Nova de Gaia (Santo Ovídio); EN 101 Braga–Vila Verde; "
-                "IC4/EN125 São João da Venda–Faro; EN125 Faro–Olhão"
+                "EN6 Lisbon–Cascais; EN10 Infantado–Vila Franca de Xira; "
+                "EN14 Maia–Braga; EN15 Porto–Campo (A4); EN105 Porto–Alfena (IC24); "
+                "IC1 Coimbrões–Miramar; EN209 Porto–Gondomar; EN209 (ER) Gondomar–Valongo; "
+                "IC2 (EN1) Alenquer–Carvalhos; EN13 Porto–Viana do Castelo; "
+                "EN1 Carvalhos–Vila Nova de Gaia (Santo Ovídio); EN101 Braga–Vila Verde; "
+                "EN125 (ER) Lagos–São João da Venda; IC4 (EN125) São João da Venda–Faro; "
+                "EN125 Faro–Olhão; EN125 (ER) Olhão–Pinheira junction; EN222 Porto–Crestuma/Lever toll barrier"
             )
             holiday_eve = (d + timedelta(days=1)) in hol
             if d.weekday() == 4 or d.weekday() == 6 or h or holiday_eve:
-                add(E,country,"HGV ban — dangerous goods — listed roads",d,"18:00","21:00",dangerous_scope + " Listed roads: " + listed + ". Applies on Fridays, Sundays, national holidays and eves of national holidays; Art. 3.")
+                scope = listed_scope + " Listed roads: " + listed + "."
+                if d.weekday() == 6 or h:
+                    scope = dangerous_scope + " " + scope
+                add(E,country,"HGV ban — dangerous goods — listed roads",d,"18:00","21:00",scope + " Applies on Fridays, Sundays, national holidays and eves of national holidays; Art. 3.")
 
             # Art. 4: Monday 07:00-10:00 inbound restrictions on specified
             # Lisbon/Porto access roads, except July and August.
@@ -106,18 +115,16 @@ def patch_generator():
 def patch_feed_description():
     text = FEEDS.read_text(encoding="utf-8")
     if '"Portugal": "Portugal:' in text:
-        # Keep the description current if the patch is re-run after an earlier
-        # Portugal description has already been inserted.
         text = re.sub(
             r'    "Portugal": ".*?",\n',
-            '    "Portugal": "Portugal: no general nationwide Sunday/public-holiday HGV ban for ordinary freight. This feed represents the recurring national restrictions for dangerous-goods vehicles under Portaria 281/2019 as amended by Portaria 163/2021: tankers are restricted nationwide on Sundays/public holidays, while heavy dangerous-goods vehicles required to display an orange ADR panel are restricted on listed roads and specified Lisbon/Porto access routes. It also includes the Ponte 25 de Abril and Gardunha Tunnel restrictions. From 15 September 2026 it includes the Porto VCI weekday restriction for qualifying heavy goods vehicles over 3.5t, with three or more axles and first-axle height >=1.1m. Statutory exemptions and special authorisations apply; local city restrictions outside these national rules are not automatically represented.",\n',
+            '    "Portugal": "Portugal: no general nationwide Sunday/public-holiday HGV ban for ordinary freight. This feed represents the recurring national restrictions for dangerous-goods vehicles under Portaria 281/2019 as amended by Portaria 163/2021: tankers are restricted nationwide on Sundays/public holidays and are also covered on Fridays and holiday eves on listed roads; other heavy dangerous-goods vehicles required to display an orange ADR panel are restricted on listed roads and specified Lisbon/Porto access routes. It also includes the Ponte 25 de Abril and Gardunha Tunnel restrictions. From 15 September 2026 it includes the Porto VCI weekday restriction for qualifying heavy goods vehicles over 3.5t, with three or more axles and first-axle height >=1.1m. Statutory exemptions and special authorisations apply; local city restrictions outside these national rules are not automatically represented.",\n',
             text,
             count=1,
         )
         FEEDS.write_text(text, encoding="utf-8")
         return
     marker = 'COUNTRY_DESCRIPTIONS = {\n'
-    desc = '''    "Portugal": "Portugal: no general nationwide Sunday/public-holiday HGV ban for ordinary freight. This feed represents the recurring national restrictions for dangerous-goods vehicles under Portaria 281/2019 as amended by Portaria 163/2021: tankers are restricted nationwide on Sundays/public holidays, while heavy dangerous-goods vehicles required to display an orange ADR panel are restricted on listed roads and specified Lisbon/Porto access routes. It also includes the Ponte 25 de Abril and Gardunha Tunnel restrictions. From 15 September 2026 it includes the Porto VCI weekday restriction for qualifying heavy goods vehicles over 3.5t, with three or more axles and first-axle height >=1.1m. Statutory exemptions and special authorisations apply; local city restrictions outside these national rules are not automatically represented."
+    desc = '''    "Portugal": "Portugal: no general nationwide Sunday/public-holiday HGV ban for ordinary freight. This feed represents the recurring national restrictions for dangerous-goods vehicles under Portaria 281/2019 as amended by Portaria 163/2021: tankers are restricted nationwide on Sundays/public holidays and are also covered on Fridays and holiday eves on listed roads; other heavy dangerous-goods vehicles required to display an orange ADR panel are restricted on listed roads and specified Lisbon/Porto access routes. It also includes the Ponte 25 de Abril and Gardunha Tunnel restrictions. From 15 September 2026 it includes the Porto VCI weekday restriction for qualifying heavy goods vehicles over 3.5t, with three or more axles and first-axle height >=1.1m. Statutory exemptions and special authorisations apply; local city restrictions outside these national rules are not automatically represented."
 '''
     if marker not in text:
         raise SystemExit("Could not locate COUNTRY_DESCRIPTIONS")
