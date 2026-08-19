@@ -80,7 +80,7 @@ jobs:
           grep -q "X-WR-CALNAME:TruckBAN — Romania" public/countries/Romania.ics
           grep -q "X-WR-CALNAME:TruckBAN — Serbia" public/countries/Serbia.ics
           grep -q "X-WR-CALNAME:TruckBAN — Spain" public/countries/Spain.ics
-          grep -q "25 de Abril Bridge" public/countries/Portugal.ics
+          grep -q "Ponte 25 de Abril" public/countries/Portugal.ics
           grep -q "Gardunha Tunnel" public/countries/Portugal.ics
           grep -q "Porto VCI" public/countries/Portugal.ics
           grep -q "orange ADR panel" public/countries/Portugal.ics
