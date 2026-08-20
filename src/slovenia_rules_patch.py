@@ -1,12 +1,19 @@
 from pathlib import Path
 
-P = Path("src/calendar_generator.py")
-s = P.read_text(encoding="utf-8")
+# This patch is intentionally idempotent: the workflow applies it after checkout
+# on every run. Keep all edits line-safe so a country description can never
+# corrupt country_feeds.py's CRLF join or Python syntax.
 
-start = s.index('        elif country == "Slovenia":')
-end = s.index('        elif country == "Switzerland":', start)
+GENERATOR = Path("src/calendar_generator.py")
+COUNTRY_FEEDS = Path("src/country_feeds.py")
 
-new = '''        elif country == "Slovenia":
+
+def patch_generator():
+    s = GENERATOR.read_text(encoding="utf-8")
+    start = s.index('        elif country == "Slovenia":')
+    end = s.index('        elif country == "Switzerland":', start)
+
+    new = '''        elif country == "Slovenia":
             # Slovenia national HGV restriction: Sundays and public holidays
             # are 08:00-22:00 local. Good Friday is a separate 14:00-22:00
             # special restriction.
@@ -24,12 +31,10 @@ new = '''        elif country == "Slovenia":
                 (12, 25): "Christmas Day",
                 (12, 26): "Independence and Unity Day",
             }
-
             holiday_label = holiday_names.get((d.month, d.day))
 
             # Calculate Easter explicitly so Easter Monday and Good Friday are
-            # represented consistently even if the holidays package changes
-            # which religious dates it exposes.
+            # represented consistently even if the holidays package changes.
             year = d.year
             a = year % 19
             b = year // 100
@@ -58,34 +63,47 @@ new = '''        elif country == "Slovenia":
                 add(E,country,"HGV ban — Sunday",d,"08:00","22:00",">7.5t on affected road sections; Sunday restriction; statutory exemptions apply.")
 
             # Tourist season runs from the last weekend of June through the
-            # first weekend of September. Therefore the first Saturday is the
-            # last Saturday in June (26 June 2027), not the first Saturday in
-            # July. The ordinary Saturday restriction is 08:00-13:00.
+            # first weekend of September. The first Saturday is therefore the
+            # last Saturday in June (26 June 2027). Ordinary Saturday is
+            # 08:00-13:00; listed routes are separately 06:00-16:00.
             summer_start = last_weekday(d.year,6,5)
             summer_end = last_weekday(d.year,9,6)
             if summer_start <= d <= summer_end and d.weekday() == 5:
                 add(E,country,"HGV ban — summer Saturday",d,"08:00","13:00",">7.5t on affected road sections; tourist-season Saturday restriction.")
                 add(E,country,"HGV ban — summer Saturday — listed routes",d,"06:00","16:00",">7.5t on A1-E61/70 Ljubljana-Koper-Ljubljana, A3-E70 Divača/Fernetiči, H5-E751 Škofije-Koper, G1-11 Koper-Dragonja and G1-6 Postojna-Jelšane; tourist-season route-specific restriction.")
 '''
+    GENERATOR.write_text(s[:start] + new + s[end:], encoding="utf-8")
 
-s = s[:start] + new + s[end:]
-P.write_text(s, encoding="utf-8")
 
-# Keep the published Slovenia country-feed description aligned with the
-# generator, including the holiday-specific and tourist-season framework.
-F = Path("src/country_feeds.py")
-f = F.read_text(encoding="utf-8")
-slovenia_desc = '    "Slovenia": "Slovenia: HGVs over 7.5t are restricted Sundays and public holidays 08:00-22:00, with Good Friday 14:00-22:00. During the tourist season (last weekend of June through first weekend of September), Saturdays are restricted 08:00-13:00 generally, with 06:00-16:00 on A1-E61/70 Ljubljana-Koper-Ljubljana, A3-E70 Divača-Fernetiči, H5-E751 Škofije-Koper, G1-11 Koper-Dragonja and G1-6 Postojna-Jelšane. Statutory exemptions and route-specific rules apply; this feed represents the recurring national framework only.",\n'
-if '    "Slovenia":' in f:
+def patch_country_feed_description():
+    description = (
+        "Slovenia: HGVs over 7.5t are restricted Sundays and public holidays 08:00-22:00, "
+        "with Good Friday 14:00-22:00. During the tourist season (last weekend of June through "
+        "first weekend of September), Saturdays are restricted 08:00-13:00 generally, with "
+        "06:00-16:00 on A1-E61/70 Ljubljana-Koper-Ljubljana, A3-E70 Divača-Fernetiči, "
+        "H5-E751 Škofije-Koper, G1-11 Koper-Dragonja and G1-6 Postojna-Jelšane. "
+        "Statutory exemptions and route-specific rules apply; this feed represents the recurring "
+        "national framework only."
+    )
+    f = COUNTRY_FEEDS.read_text(encoding="utf-8")
     lines = f.splitlines()
+    replacement = f'    "Slovenia": "{description}",'
+
     for i, line in enumerate(lines):
-        if line.strip().startswith('"Slovenia":'):
-            lines[i] = slovenia_desc.rstrip("\\n")
-            break
-    f = "\\n".join(lines) + "\\n"
-else:
-    marker = '    "Croatia":'
-    idx = f.index(marker)
-    line_end = f.index("\\n", idx)
-    f = f[:line_end + 1] + slovenia_desc + f[line_end + 1:]
-F.write_text(f, encoding="utf-8")
+        if line.lstrip().startswith('"Slovenia":'):
+            lines[i] = replacement
+            COUNTRY_FEEDS.write_text("\n".join(lines) + "\n", encoding="utf-8")
+            return
+
+    for i, line in enumerate(lines):
+        if line.lstrip().startswith('"Croatia":'):
+            lines.insert(i, replacement)
+            COUNTRY_FEEDS.write_text("\n".join(lines) + "\n", encoding="utf-8")
+            return
+
+    raise RuntimeError("Could not find a safe insertion point for Slovenia country description")
+
+
+patch_generator()
+patch_country_feed_description()
+print("Applied verified Slovenia rules safely.")
