@@ -66,9 +66,13 @@ def patch_generator():
                 add(E,country,"HGV ban — holiday Sunday",following_sunday,"12:00","23:00",scope)
 
             # If a public holiday falls on Sunday or Monday, the preceding Friday
-            # is restricted 15:00-23:00.
-            if h and d.weekday() in (6, 0):
-                preceding_friday = d - timedelta(days=(d.weekday() + 3) % 7)
+            # is restricted 15:00-23:00. For a Sunday/Monday holiday pair, emit
+            # the Friday restriction only once.
+            if h and d.weekday() == 6:
+                preceding_friday = d - timedelta(days=2)
+                add(E,country,"HGV ban — pre-holiday Friday",preceding_friday,"15:00","23:00",scope)
+            if h and d.weekday() == 0 and (d - timedelta(days=1)) not in hol:
+                preceding_friday = d - timedelta(days=3)
                 add(E,country,"HGV ban — pre-holiday Friday",preceding_friday,"15:00","23:00",scope)
 
             # Separate standing Sunday restriction on state road D2.
@@ -79,21 +83,30 @@ def patch_generator():
     if old in text:
         text = text.replace(old, new, 1)
     else:
-        # The special-holiday block may already be installed. Add the D2 rule
-        # without disturbing the holiday logic, and remain idempotent.
-        if 'HGV ban — D2 Varaždin–Dubrava Križovljanska' not in text:
-            marker = '                add(E,country,"HGV ban — pre-holiday Friday",preceding_friday,"15:00","23:00",scope)\n'
-            insertion = marker + '\n            # Separate standing Sunday restriction on state road D2.\n            if d.weekday() == 6:\n                add(E,country,"HGV ban — D2 Varaždin–Dubrava Križovljanska",d,"06:00","22:00",">7.5t HGVs, with or without trailer, on state road D2 from Varaždin to GP Dubrava Križovljanska. Local residents/businesses in the D2 zone and specified supply vehicles are exempt under the Croatian order.")\n'
-            if marker not in text:
-                raise SystemExit("Could not locate Croatian holiday block for D2 insertion")
-            text = text.replace(marker, insertion, 1)
-        else:
-            print("Croatian holiday rules and D2 rule already present")
-            return
+        # The special-holiday block may already be installed. Update the
+        # pre-holiday Friday logic in place and keep the patch idempotent.
+        old_logic = '''            if h and d.weekday() in (6, 0):
+                preceding_friday = d - timedelta(days=(d.weekday() + 3) % 7)
+                add(E,country,"HGV ban — pre-holiday Friday",preceding_friday,"15:00","23:00",scope)
+
+            # Separate standing Sunday restriction on state road D2.
+'''
+        new_logic = '''            if h and d.weekday() == 6:
+                preceding_friday = d - timedelta(days=2)
+                add(E,country,"HGV ban — pre-holiday Friday",preceding_friday,"15:00","23:00",scope)
+            if h and d.weekday() == 0 and (d - timedelta(days=1)) not in hol:
+                preceding_friday = d - timedelta(days=3)
+                add(E,country,"HGV ban — pre-holiday Friday",preceding_friday,"15:00","23:00",scope)
+
+            # Separate standing Sunday restriction on state road D2.
+'''
+        if old_logic not in text:
+            raise SystemExit("Could not locate Croatian pre-holiday Friday logic")
+        text = text.replace(old_logic, new_logic, 1)
 
     GEN.write_text(text, encoding="utf-8")
 
 
 if __name__ == "__main__":
     patch_generator()
-    print("Applied Croatian special holiday rules and D2 Sunday restriction")
+    print("Applied Croatian special holiday rules, D2 Sunday restriction and duplicate-free Friday handling")
