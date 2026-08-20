@@ -1,5 +1,4 @@
 from pathlib import Path
-import re
 
 GEN = Path("src/calendar_generator.py")
 
@@ -25,11 +24,11 @@ def patch_generator():
                     add(E,country,"HGV ban — summer Sunday",d,"12:00","23:00",scope)
 
             # Croatian holiday rules are calendar-dependent and are not simply
-            # "holiday = 14:00-23:00".  The Order also covers Good Friday,
+            # "holiday = 14:00-23:00". The Order also covers Good Friday,
             # holiday eves, and Sunday/Friday compensating restrictions.
             # Calculate Easter Sunday deterministically so Good Friday and the
-            # Easter holiday sequence are represented even when Good Friday is
-            # not exposed as a public holiday by the holidays library.
+            # Easter sequence are represented even when Good Friday is not
+            # exposed as a public holiday by the holidays library.
             year = d.year
             a = year % 19
             b = year // 100
@@ -47,47 +46,29 @@ def patch_generator():
             easter = date(year, easter_month, easter_day)
             good_friday = easter - timedelta(days=2)
 
-            # Good Friday: 15:00-23:00.
             if d == good_friday:
                 add(E,country,"HGV ban — Good Friday",d,"15:00","23:00",scope)
 
-            # Eve of every public/religious holiday: 15:00-23:00.  Easter
-            # Sunday is included, so Holy Saturday is generated as the eve of
-            # Easter; Good Friday remains explicitly represented above.
+            # Eve of every public/religious holiday: 15:00-23:00. This includes
+            # Holy Saturday as the eve of Easter Sunday.
             next_day = d + timedelta(days=1)
             if next_day in hol or next_day == easter:
                 add(E,country,"HGV ban — holiday eve",d,"15:00","23:00",scope)
 
-            # Public holiday itself: 14:00-23:00, including Sundays and
-            # Mondays; the compensating rules below are additional restrictions.
+            # Public holiday itself: 14:00-23:00, including Sundays/Mondays.
             if h:
                 add(E,country,"HGV ban — public holiday",d,"14:00","23:00",scope)
 
-            # If a public holiday, or the last day of a consecutive holiday
-            # series, falls on Friday or Saturday, the following Sunday is
-            # restricted 12:00-23:00.
-            if h and d.weekday() in (4, 5):
-                following_sunday = d + timedelta(days=(6 - d.weekday()))
-                if following_sunday == d:
-                    following_sunday += timedelta(days=7)
-                if d == following_sunday - timedelta(days=1) or True:
-                    if following_sunday == d + timedelta(days=1) or following_sunday == d + timedelta(days=2):
-                        if following_sunday.weekday() == 6:
-                            add(E,country,"HGV ban — holiday Sunday",following_sunday,"12:00","23:00",scope)
-
-            # More generally, when the last day of a consecutive holiday series
-            # is Friday/Saturday, the following Sunday is restricted. Detect the
-            # last day by checking that the next calendar day is not a holiday.
+            # If the holiday or the last day of a consecutive holiday series is
+            # Friday/Saturday, the following Sunday is restricted 12:00-23:00.
             if h and d.weekday() in (4, 5) and next_day not in hol:
-                following_sunday = d + timedelta(days=(6 - d.weekday()))
-                if following_sunday <= d:
-                    following_sunday += timedelta(days=7)
+                following_sunday = d + timedelta(days=6 - d.weekday())
                 add(E,country,"HGV ban — holiday Sunday",following_sunday,"12:00","23:00",scope)
 
             # If a public holiday falls on Sunday or Monday, the preceding Friday
             # is restricted 15:00-23:00.
             if h and d.weekday() in (6, 0):
-                preceding_friday = d - timedelta(days=(d.weekday() + 2) % 7)
+                preceding_friday = d - timedelta(days=(d.weekday() + 3) % 7)
                 add(E,country,"HGV ban — pre-holiday Friday",preceding_friday,"15:00","23:00",scope)
 '''
 
