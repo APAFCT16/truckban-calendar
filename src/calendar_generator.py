@@ -165,8 +165,11 @@ def country_events(country, today, stop):
 
             # If a public holiday falls on Sunday or Monday, the preceding Friday
             # is restricted 15:00-23:00.
-            if h and d.weekday() in (6, 0):
-                preceding_friday = d - timedelta(days=(d.weekday() + 3) % 7)
+            if h and d.weekday() == 6:
+                preceding_friday = d - timedelta(days=2)
+                add(E,country,"HGV ban — pre-holiday Friday",preceding_friday,"15:00","23:00",scope)
+            if h and d.weekday() == 0 and (d - timedelta(days=1)) not in hol:
+                preceding_friday = d - timedelta(days=3)
                 add(E,country,"HGV ban — pre-holiday Friday",preceding_friday,"15:00","23:00",scope)
 
             # Separate standing Sunday restriction on state road D2.
