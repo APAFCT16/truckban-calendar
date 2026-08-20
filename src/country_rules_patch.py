@@ -135,6 +135,47 @@ def patch_generator():
                     add(E,country,"HGV ban — summer Sunday",d,"08:00","22:00",">12t permissible maximum mass; nationwide summer restriction. Statutory exemptions apply.")'''
     text = replace_branch(text, "Poland", poland_branch)
 
+    # Slovenia: Good Friday is a statutory HGV restriction but is not exposed as
+    # a public holiday by every holidays-library version. Add it explicitly so
+    # the recurring feed cannot silently omit the 14:00-22:00 Good Friday rule.
+    slovenia_branch = '''        elif country == "Slovenia":
+            named_holiday = holiday_name(country, d) if h else None
+            if d.weekday() == 6:
+                if named_holiday:
+                    add(E,country,f"HGV ban — {named_holiday}",d,"08:00","22:00",f">7.5t on affected road sections; {named_holiday} public-holiday restriction. Statutory exemptions apply.")
+                else:
+                    add(E,country,"HGV ban — Sunday",d,"08:00","22:00",">7.5t on affected road sections; Sunday restriction. Statutory exemptions apply.")
+            elif h:
+                label = named_holiday or "public holiday"
+                add(E,country,f"HGV ban — {label}",d,"08:00","22:00",f">7.5t on affected road sections; {label} public-holiday restriction. Statutory exemptions apply.")
+
+            # Good Friday is a special Slovenian restriction (14:00-22:00),
+            # and must not depend on the holidays package classifying it as a
+            # public holiday.
+            year = d.year
+            a = year % 19
+            b = year // 100
+            c = year % 100
+            ee = b // 4
+            f = b % 4
+            g = (b + 8) // 25
+            hh = (b - g + 1) // 3
+            i = (19 * a + b - ee - hh + 15) % 30
+            k = c // 4
+            l = (32 + 2 * f + 2 * k - i - (c % 4)) % 7
+            m = (a + 11 * i + 22 * l) // 451
+            easter_month = (i + l - 7 * m + 114) // 31
+            easter_day = ((i + l - 7 * m + 114) % 31) + 1
+            easter = date(year, easter_month, easter_day)
+            if d == easter - timedelta(days=2):
+                add(E,country,"HGV ban — Good Friday",d,"14:00","22:00",">7.5t on affected road sections; Good Friday special restriction. Statutory exemptions apply.")
+
+            summer_start = last_weekday(d.year,6,5)
+            summer_end = date(d.year,9,7)
+            if summer_start <= d <= summer_end and d.weekday() == 5:
+                add(E,country,"HGV ban — summer Saturday",d,"08:00","13:00",">7.5t on affected road sections; tourist-season Saturday restriction 08:00–13:00. On A1-E61/70 Ljubljana-Koper-Ljubljana, A3-E70 Divača-Fernetiči, H5-E751 Škofije-Koper, G1-11 Koper-Dragonja and G1-6 Postojna-Jelšane, the route-specific restriction is 06:00–16:00. Statutory exemptions and route-specific rules apply.")'''
+    text = replace_branch(text, "Slovenia", slovenia_branch)
+
     GEN.write_text(text, encoding="utf-8")
 
 
@@ -154,4 +195,4 @@ def patch_feed_description():
 if __name__ == "__main__":
     patch_generator()
     patch_feed_description()
-    print("Applied verified Belgium, Luxembourg, Hungary, Czechia and Poland country rules")
+    print("Applied verified Belgium, Luxembourg, Hungary, Czechia, Poland and Slovenia country rules")
