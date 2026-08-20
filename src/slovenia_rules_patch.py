@@ -64,10 +64,11 @@ def patch_generator():
 
             # Tourist season runs from the last weekend of June through the
             # first weekend of September. The first Saturday is therefore the
-            # last Saturday in June (26 June 2027). Ordinary Saturday is
-            # 08:00-13:00; listed routes are separately 06:00-16:00.
+            # last Saturday in June. Ordinary Saturday is 08:00-13:00; listed
+            # routes are separately 06:00-16:00. The season ends with the first
+            # Saturday in September, not the last Saturday in September.
             summer_start = last_weekday(d.year,6,5)
-            summer_end = last_weekday(d.year,9,6)
+            summer_end = first_weekday(d.year,9,5)
             if summer_start <= d <= summer_end and d.weekday() == 5:
                 add(E,country,"HGV ban — summer Saturday",d,"08:00","13:00",">7.5t on affected road sections; tourist-season Saturday restriction.")
                 add(E,country,"HGV ban — summer Saturday — listed routes",d,"06:00","16:00",">7.5t on A1-E61/70 Ljubljana-Koper-Ljubljana, A3-E70 Divača/Fernetiči, H5-E751 Škofije-Koper, G1-11 Koper-Dragonja and G1-6 Postojna-Jelšane; tourist-season route-specific restriction.")
