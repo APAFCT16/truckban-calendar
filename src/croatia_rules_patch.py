@@ -70,14 +70,30 @@ def patch_generator():
             if h and d.weekday() in (6, 0):
                 preceding_friday = d - timedelta(days=(d.weekday() + 3) % 7)
                 add(E,country,"HGV ban — pre-holiday Friday",preceding_friday,"15:00","23:00",scope)
+
+            # Separate standing Sunday restriction on state road D2.
+            if d.weekday() == 6:
+                add(E,country,"HGV ban — D2 Varaždin–Dubrava Križovljanska",d,"06:00","22:00",">7.5t HGVs, with or without trailer, on state road D2 from Varaždin to GP Dubrava Križovljanska. Local residents/businesses in the D2 zone and specified supply vehicles are exempt under the Croatian order.")
 '''
 
-    if old not in text:
-        raise SystemExit("Expected Croatia branch not found; refusing to patch")
-    text = text.replace(old, new, 1)
+    if old in text:
+        text = text.replace(old, new, 1)
+    else:
+        # The special-holiday block may already be installed. Add the D2 rule
+        # without disturbing the holiday logic, and remain idempotent.
+        if 'HGV ban — D2 Varaždin–Dubrava Križovljanska' not in text:
+            marker = '                add(E,country,"HGV ban — pre-holiday Friday",preceding_friday,"15:00","23:00",scope)\n'
+            insertion = marker + '\n            # Separate standing Sunday restriction on state road D2.\n            if d.weekday() == 6:\n                add(E,country,"HGV ban — D2 Varaždin–Dubrava Križovljanska",d,"06:00","22:00",">7.5t HGVs, with or without trailer, on state road D2 from Varaždin to GP Dubrava Križovljanska. Local residents/businesses in the D2 zone and specified supply vehicles are exempt under the Croatian order.")\n'
+            if marker not in text:
+                raise SystemExit("Could not locate Croatian holiday block for D2 insertion")
+            text = text.replace(marker, insertion, 1)
+        else:
+            print("Croatian holiday rules and D2 rule already present")
+            return
+
     GEN.write_text(text, encoding="utf-8")
 
 
 if __name__ == "__main__":
     patch_generator()
-    print("Applied Croatian Good Friday, holiday-eve and calendar-dependent holiday rules")
+    print("Applied Croatian special holiday rules and D2 Sunday restriction")
