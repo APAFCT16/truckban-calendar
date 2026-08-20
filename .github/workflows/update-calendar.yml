@@ -125,10 +125,8 @@ jobs:
           grep -q "20261223" public/countries/Bulgaria.ics
           grep -q "20261224" public/countries/Bulgaria.ics
           grep -q "20261228" public/countries/Bulgaria.ics
-          grep -q "20260620" public/countries/Croatia.ics
-          grep -q "20260815" public/countries/Croatia.ics
+          # Croatia feed starts from today, so do not validate past events.
           grep -q "20260913" public/countries/Croatia.ics
-          grep -q "20260622" public/countries/Croatia.ics
           grep -q "DC8" public/countries/Croatia.ics
           grep -q "7.5t" public/countries/Croatia.ics
           ! grep -R -q "DTSTART;TZID=" public --include='*.ics'
