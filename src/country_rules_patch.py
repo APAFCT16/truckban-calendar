@@ -5,6 +5,15 @@ GEN = Path("src/calendar_generator.py")
 FEEDS = Path("src/country_feeds.py")
 
 
+def replace_branch(text, country, replacement):
+    """Replace one country branch without depending on the following country's name."""
+    pattern = rf'(?ms)^        elif country == "{re.escape(country)}":.*?(?=^        elif country == |^        else:|\Z)'
+    text, n = re.subn(pattern, replacement.rstrip() + "\n", text, count=1)
+    if n != 1:
+        raise SystemExit(f"Expected {country} branch not found (matches={n})")
+    return text
+
+
 def patch_generator():
     text = GEN.read_text(encoding="utf-8")
 
@@ -42,11 +51,8 @@ def patch_generator():
             if fr_holiday:
                 add(E,country,"HGV ban — public holiday transit towards France",d,"00:00","21:45",">7.5t; transit towards France; French public holiday.")
             if de_holiday:
-                add(E,country,"HGV ban — public holiday transit towards Germany",d,"00:00","21:45",">7.5t; transit towards Germany; German public holiday.")
-'''
-    text, n = re.subn(r'        elif country == "Luxembourg":.*?(?=        elif country == "Poland":)', lux_branch, text, count=1, flags=re.S)
-    if n != 1:
-        raise SystemExit(f"Expected Luxembourg branch not found (matches={n})")
+                add(E,country,"HGV ban — public holiday transit towards Germany",d,"00:00","21:45",">7.5t; transit towards Germany; German public holiday.")'''
+    text = replace_branch(text, "Luxembourg", lux_branch)
 
     # Add a helper capable of representing a restriction that crosses midnight.
     if 'def add_span(events, country, title, start_day' not in text:
@@ -67,20 +73,11 @@ def patch_generator():
                     add_span(E,country,"HGV ban — weekend",d,"22:00",end_day,"22:00",">7.5t; winter-period weekend restriction runs from Saturday 22:00 to Sunday 22:00. International Euro 3+ exemptions may apply in winter." + warning)
             if h and d.weekday() != 6:
                 prev = d - timedelta(days=1)
-                add_span(E,country,"HGV ban — public holiday",prev,"22:00",d,"22:00",">7.5t; public-holiday and consecutive-holiday rules apply." + warning)
-'''
-    text, n = re.subn(r'        elif country == "Hungary":.*?(?=        elif country == "Luxembourg":)', hungary_branch, text, count=1, flags=re.S)
-    if n != 1:
-        raise SystemExit(f"Expected Hungary branch not found (matches={n})")
+                add_span(E,country,"HGV ban — public holiday",prev,"22:00",d,"22:00",">7.5t; public-holiday and consecutive-holiday rules apply." + warning)'''
+    text = replace_branch(text, "Hungary", hungary_branch)
 
-    # Czechia: use the statutory road scope and include the 3.5t-with-trailer vehicle class.
-    old_czech = '''        elif country == "Czech Republic":
-            if d.weekday() == 6 or h: add(E,country,"HGV ban — Sunday/public holiday",d,"13:00","22:00",">7.5t on motorways, expressways and 1st-class roads.")
-            if date(d.year,7,1) <= d <= date(d.year,8,31):
-                if d.weekday() == 4: add(E,country,"HGV ban — summer Friday",d,"17:00","21:00",">7.5t on affected roads.")
-                if d.weekday() == 5: add(E,country,"HGV ban — summer Saturday",d,"07:00","13:00",">7.5t on affected roads.")
-'''
-    new_czech = '''        elif country == "Czech Republic":
+    # Czechia: statutory road scope and the 3.5t-with-trailer class.
+    czech_branch = '''        elif country == "Czech Republic":
             scope = ">7.5t, plus vehicles over 3.5t with a trailer/semi-trailer, on motorways and Class I roads; statutory exemptions apply."
             if d.weekday() == 6 or h:
                 add(E,country,"HGV ban — Sunday/public holiday",d,"13:00","22:00",scope)
@@ -88,15 +85,10 @@ def patch_generator():
                 if d.weekday() == 4:
                     add(E,country,"HGV ban — summer Friday",d,"17:00","21:00",scope)
                 if d.weekday() == 5:
-                    add(E,country,"HGV ban — summer Saturday",d,"07:00","13:00",scope)
-'''
-    if old_czech not in text:
-        raise SystemExit("Expected Czech Republic branch not found")
-    text = text.replace(old_czech, new_czech, 1)
+                    add(E,country,"HGV ban — summer Saturday",d,"07:00","13:00",scope)'''
+    text = replace_branch(text, "Czech Republic", czech_branch)
 
-    # Poland: statutory holiday list, including Easter Sunday/Monday, Pentecost
-    # and Corpus Christi; explicit holiday eves; and the final summer Sunday.
-    # 6 January is a public holiday but is deliberately NOT a traffic-ban holiday.
+    # Poland: statutory traffic-ban holiday list plus summer restrictions.
     poland_branch = '''        elif country == "Poland":
             restricted_holidays = {
                 x for x in hol
@@ -106,10 +98,6 @@ def patch_generator():
                 or (x.month == 11 and x.day in (1, 11))
                 or (x.month == 12 and x.day in (25, 26))
             }
-
-            # Add the movable statutory traffic-ban holidays directly from the
-            # Gregorian Easter calculation instead of relying on holiday-library
-            # labels. This makes the recurring feed deterministic for future years.
             a = d.year
             aa = a % 19
             bb = a // 100
@@ -127,7 +115,6 @@ def patch_generator():
             easter_day = ((hh + ll - 7 * mm + 114) % 31) + 1
             easter = date(a, easter_month, easter_day)
             restricted_holidays.update({easter, easter + timedelta(days=1), easter + timedelta(days=49), easter + timedelta(days=60)})
-
             eve_targets = {
                 x for x in restricted_holidays
                 if not (x.month == 1 and x.day == 1)
@@ -137,7 +124,6 @@ def patch_generator():
                 add(E,country,"HGV ban — public holiday",d,"08:00","22:00",">12t permissible maximum mass; nationwide, subject to statutory exemptions. Poland national restriction under the 31 July 2007 regulation.")
             if d + timedelta(days=1) in eve_targets:
                 add(E,country,"HGV ban — public holiday eve",d,"18:00","22:00",">12t permissible maximum mass; nationwide, subject to statutory exemptions. Restriction applies on the day preceding the listed holiday under §2(2).")
-
             summer_start = last_weekday(d.year,6,4)
             summer_end = last_weekday(d.year,8,6)
             if summer_start <= d <= summer_end:
@@ -146,11 +132,8 @@ def patch_generator():
                 if d.weekday() == 5:
                     add(E,country,"HGV ban — summer Saturday",d,"08:00","14:00",">12t permissible maximum mass; nationwide summer restriction. Statutory exemptions apply.")
                 if d.weekday() == 6:
-                    add(E,country,"HGV ban — summer Sunday",d,"08:00","22:00",">12t permissible maximum mass; nationwide summer restriction. Statutory exemptions apply.")
-'''
-    text, n = re.subn(r'        elif country == "Poland":.*?(?=        elif country == "Slovakia":)', poland_branch, text, count=1, flags=re.S)
-    if n != 1:
-        raise SystemExit(f"Expected Poland branch not found (matches={n})")
+                    add(E,country,"HGV ban — summer Sunday",d,"08:00","22:00",">12t permissible maximum mass; nationwide summer restriction. Statutory exemptions apply.")'''
+    text = replace_branch(text, "Poland", poland_branch)
 
     GEN.write_text(text, encoding="utf-8")
 
