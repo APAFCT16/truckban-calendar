@@ -128,7 +128,7 @@ jobs:
           grep -q "20260620" public/countries/Croatia.ics
           grep -q "20260815" public/countries/Croatia.ics
           grep -q "20260913" public/countries/Croatia.ics
-          grep -q "20260915" public/countries/Croatia.ics
+          grep -q "20260622" public/countries/Croatia.ics
           grep -q "DC8" public/countries/Croatia.ics
           grep -q "7.5t" public/countries/Croatia.ics
           ! grep -R -q "DTSTART;TZID=" public --include='*.ics'
