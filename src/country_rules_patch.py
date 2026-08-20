@@ -6,12 +6,30 @@ FEEDS = Path("src/country_feeds.py")
 
 
 def replace_branch(text, country, replacement):
-    """Replace one country branch without depending on the following country's name."""
-    pattern = rf'(?ms)^        elif country == "{re.escape(country)}":.*?(?=^        elif country == |^        else:|\Z)'
-    text, n = re.subn(pattern, replacement.rstrip() + "\n", text, count=1)
-    if n != 1:
-        raise SystemExit(f"Expected {country} branch not found (matches={n})")
-    return text
+    """Replace a country branch by its actual Python block boundaries.
+
+    Do not match a particular branch body or depend on the exact spelling or
+    shape of the following country. Locate the requested ``elif country ==``
+    line, then replace through the next peer ``elif country ==``/``else:`` at
+    the same indentation. This keeps the patcher coupled to the generator's
+    structure rather than to stale country-rule implementation details.
+    """
+    country_re = re.escape(country)
+    start_re = re.compile(
+        rf'(?m)^(?P<indent>[ \t]*)elif[ \t]+country[ \t]*==[ \t]*["\']{country_re}["\'][ \t]*:\s*$'
+    )
+    matches = list(start_re.finditer(text))
+    if len(matches) != 1:
+        raise SystemExit(f"Expected {country} branch not found uniquely (matches={len(matches)})")
+
+    match = matches[0]
+    indent = match.group("indent")
+    peer_re = re.compile(
+        rf'(?m)^{re.escape(indent)}(?:elif[ \t]+country[ \t]*==|else[ \t]*:).*?$'
+    )
+    next_match = peer_re.search(text, match.end())
+    end = next_match.start() if next_match else len(text)
+    return text[:match.start()] + replacement.rstrip() + "\n" + text[end:]
 
 
 def patch_generator():
@@ -158,7 +176,7 @@ def patch_generator():
             c = year % 100
             ee = b // 4
             f = b % 4
-            g = (b + 8) // 25
+            g = (b + 8) % 25
             hh = (b - g + 1) // 3
             i = (19 * a + b - ee - hh + 15) % 30
             k = c // 4
