@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - .github/workflows/trigger-croatia-holiday-fix.yml
+      - src/croatia_rules_patch.py
 
 permissions:
   contents: write
