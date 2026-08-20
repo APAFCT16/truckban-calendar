@@ -135,10 +135,12 @@ jobs:
           grep -q "7.5t" public/countries/Croatia.ics
           # Slovenia: verify the 2026 tourist-season Saturday windows and
           # Good Friday rule in UTC (local Slovenia time is UTC+2 in summer).
+          # General Saturday: 08:00-13:00 local = 06:00-11:00 UTC.
           grep -q "DTSTART:20260822T060000Z" public/countries/Slovenia.ics
-          grep -q "DTEND:20260822T140000Z" public/countries/Slovenia.ics
-          grep -q "DTSTART:20260822T040000Z" public/countries/Slovenia.ics
           grep -q "DTEND:20260822T110000Z" public/countries/Slovenia.ics
+          # Listed routes: 06:00-16:00 local = 04:00-14:00 UTC.
+          grep -q "DTSTART:20260822T040000Z" public/countries/Slovenia.ics
+          grep -q "DTEND:20260822T140000Z" public/countries/Slovenia.ics
           grep -q "HGV ban — Good Friday" public/countries/Slovenia.ics
           ! grep -R -q "DTSTART;TZID=" public --include='*.ics'
           ! grep -R -q "DTEND;TZID=" public --include='*.ics'
