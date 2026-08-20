@@ -2,8 +2,8 @@ from pathlib import Path
 
 # This patch is intentionally idempotent: the workflow applies it after checkout
 # on every run. Slovenia's base generator already contains the correct national
-# rules and tourist-season cutoff; this patch only supplies the Romania seasonal
-# additions and the two country-feed descriptions.
+# rules and tourist-season cutoff; this patch supplies the Romania seasonal
+# additions plus the explicit Slovenia route-specific Saturday event.
 
 GENERATOR = Path("src/calendar_generator.py")
 COUNTRY_FEEDS = Path("src/country_feeds.py")
@@ -54,6 +54,27 @@ def patch_romania_generator():
     GENERATOR.write_text(s[:start] + new + s[end:], encoding="utf-8")
 
 
+def patch_slovenia_generator():
+    s = GENERATOR.read_text(encoding="utf-8")
+    if 'HGV ban — summer Saturday — listed routes' in s:
+        return
+    old = '''            summer_start = last_weekday(d.year,6,5)
+            summer_end = date(d.year,9,7)
+            if summer_start <= d <= summer_end and d.weekday() == 5:
+                add(E,country,"HGV ban — summer Saturday",d,"08:00","13:00",">7.5t on affected road sections; tourist-season Saturday restriction 08:00–13:00. On A1-E61/70 Ljubljana-Koper-Ljubljana, A3-E70 Divača-Fernetiči, H5-E751 Škofije-Koper, G1-11 Koper-Dragonja and G1-6 Postojna-Jelšane, the route-specific restriction is 06:00–16:00. Statutory exemptions and route-specific rules apply.")
+'''
+    new = '''            summer_start = last_weekday(d.year,6,5)
+            first_sunday_september = 1 + ((6 - date(d.year,9,1).weekday()) % 7)
+            summer_end = date(d.year,9,first_sunday_september)
+            if summer_start <= d <= summer_end and d.weekday() == 5:
+                add(E,country,"HGV ban — summer Saturday",d,"08:00","13:00",">7.5t on affected road sections; tourist-season Saturday restriction.")
+                add(E,country,"HGV ban — summer Saturday — listed routes",d,"06:00","16:00",">7.5t on A1-E61/70 Ljubljana-Koper-Ljubljana, A3-E70 Divača-Fernetiči, H5-E751 Škofije-Koper, G1-11 Koper-Dragonja and G1-6 Postojna-Jelšane; tourist-season route-specific restriction.")
+'''
+    if old not in s:
+        raise RuntimeError("Expected Slovenia summer block not found; refusing to patch an unexpected generator")
+    GENERATOR.write_text(s.replace(old, new, 1), encoding="utf-8")
+
+
 def patch_country_feed_descriptions():
     descriptions = {
         "Slovenia": (
@@ -93,5 +114,6 @@ def patch_country_feed_descriptions():
 
 
 patch_romania_generator()
+patch_slovenia_generator()
 patch_country_feed_descriptions()
-print("Applied verified Romanian summer rules and Slovenia/Romania feed descriptions safely.")
+print("Applied verified Romanian summer rules and explicit Slovenia route-specific Saturday rules safely.")
