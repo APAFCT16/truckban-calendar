@@ -127,7 +127,7 @@ jobs:
           grep -q "20261228" public/countries/Bulgaria.ics
           # Croatia feed starts from today, so do not validate past events.
           grep -q "20260913" public/countries/Croatia.ics
-          grep -q "DC8" public/countries/Croatia.ics
+          grep -q "HGV ban — summer Sunday" public/countries/Croatia.ics
           grep -q "7.5t" public/countries/Croatia.ics
           ! grep -R -q "DTSTART;TZID=" public --include='*.ics'
           ! grep -R -q "DTEND;TZID=" public --include='*.ics'
