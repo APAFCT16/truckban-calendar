@@ -10,8 +10,6 @@ def patch_n230_sunday_rule():
         raise SystemExit("Could not locate Spain June Sunday branch for N-230 patch")
 
     winter_title = 'N-230 PK 149.2-133.6 / 120.9-119.5 / 116.1-64.1 — Benabarre'
-    summer_title = 'N-230 PK 149.2-133.6 / 120.9-119.5 / 116.1-64.1 — Benabarre'
-
     patches = []
     if winter_title not in text:
         patches.append('''                if ((1 <= d.month <= 3) or (d.month == 12 and 6 <= d.day <= 27)) and d.weekday() == 6:\n                    add(E,country,"HGV restriction — N-230 PK 149.2-133.6 / 120.9-119.5 / 116.1-64.1 — Benabarre",d,"13:00","20:00",">7.5t; N-230 named sections, direction Benabarre. 2026 DGT Annex II; Sundays only in the stated periods.")\n''')
@@ -28,12 +26,21 @@ def patch_n230_sunday_rule():
 
 def patch_croatia_d2_sunday_rule():
     text = GEN.read_text(encoding="utf-8")
+    if 'D2 Varaždin–Dubrava Križovljanska' in text:
+        print("Croatia D2 Sunday rule already present")
+        return
+
     marker = '        elif country == "Croatia":\n'
     if marker not in text:
         raise SystemExit("Could not locate Croatia branch")
-    rule = '''            if d.weekday() == 6 and "HGV ban — D2 Varaždin–Dubrava Križovljanska" not in text:\n                pass\n'''
-    # Insert the D2 rule directly into the Croatia branch, once. The rule is\n    # year-round: Sundays 06:00-22:00 on D2 Varaždin-GP Dubrava Križovljanska.\n    if 'D2 Varaždin–Dubrava Križovljanska' in text:\n        print("Croatia D2 Sunday rule already present")\n        return\n    target = '            if h and d.weekday() != 6: add(E,country,"HGV ban — public holiday",d,"14:00","23:00",">7.5t or >14m on specified main roads.")\n'
-    if target not in text:\n        raise SystemExit("Could not locate Croatia public-holiday line")\n    addition = target + '            if d.weekday() == 6:\n                add(E,country,"HGV ban — D2 Varaždin–Dubrava Križovljanska",d,"06:00","22:00",">7.5t HGVs, with or without trailer, on state road D2 from Varaždin to GP Dubrava Križovljanska. Local residents/businesses in the D2 zone and specified supply vehicles are exempt under the Croatian order.")\n'
+
+    target = '            if h and d.weekday() != 6: add(E,country,"HGV ban — public holiday",d,"14:00","23:00",">7.5t or >14m on specified main roads.")\n'
+    if target not in text:
+        raise SystemExit("Could not locate Croatia public-holiday line")
+
+    addition = target + '''            if d.weekday() == 6:
+                add(E,country,"HGV ban — D2 Varaždin–Dubrava Križovljanska",d,"06:00","22:00",">7.5t HGVs, with or without trailer, on state road D2 from Varaždin to GP Dubrava Križovljanska. Local residents/businesses in the D2 zone and specified supply vehicles are exempt under the Croatian order.")
+'''
     text = text.replace(target, addition, 1)
     GEN.write_text(text, encoding="utf-8")
 
