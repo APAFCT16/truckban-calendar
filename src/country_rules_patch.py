@@ -6,14 +6,7 @@ FEEDS = Path("src/country_feeds.py")
 
 
 def replace_branch(text, country, replacement):
-    """Replace a country branch by its actual Python block boundaries.
-
-    Do not match a particular branch body or depend on the exact spelling or
-    shape of the following country. Locate the requested ``elif country ==``
-    line, then replace through the next peer ``elif country ==``/``else:`` at
-    the same indentation. This keeps the patcher coupled to the generator's
-    structure rather than to stale country-rule implementation details.
-    """
+    """Replace a country branch by its actual Python block boundaries."""
     country_re = re.escape(country)
     start_re = re.compile(
         rf'(?m)^(?P<indent>[ \t]*)elif[ \t]+country[ \t]*==[ \t]*["\']{country_re}["\'][ \t]*:\s*$'
@@ -35,7 +28,6 @@ def replace_branch(text, country, replacement):
 def patch_generator():
     text = GEN.read_text(encoding="utf-8")
 
-    # Belgium timezone + explicit no-event branch.
     text = text.replace(
         '"Austria": "Europe/Vienna", "Croatia": "Europe/Zagreb", "Czech Republic": "Europe/Prague",',
         '"Austria": "Europe/Vienna", "Belgium": "Europe/Brussels", "Croatia": "Europe/Zagreb", "Czech Republic": "Europe/Prague",',
@@ -52,7 +44,6 @@ def patch_generator():
 '''
         text = text.replace(marker, belgium + marker, 1)
 
-    # Luxembourg: direction-specific transit rules.
     lux_branch = '''        elif country == "Luxembourg":
             fr_holiday = d in holiday_dates("France", years)
             de_holiday = d in holiday_dates("Germany", years)
@@ -72,7 +63,6 @@ def patch_generator():
                 add(E,country,"HGV ban — public holiday transit towards Germany",d,"00:00","21:45",">7.5t; transit towards Germany; German public holiday.")'''
     text = replace_branch(text, "Luxembourg", lux_branch)
 
-    # Add a helper capable of representing a restriction that crosses midnight.
     if 'def add_span(events, country, title, start_day' not in text:
         marker = '''    events.append((a, b, country, title, desc))\n\n\ndef add_holiday_rules'''
         replacement = '''    events.append((a, b, country, title, desc))\n\n\ndef add_span(events, country, title, start_day, start, end_day, end, desc):\n    tz = TZ[country]\n    def make(day, hm):\n        if hm == "24:00":\n            return datetime(day.year, day.month, day.day, 0, 0, tzinfo=ZoneInfo(tz)) + timedelta(days=1)\n        h, m = map(int, hm.split(":"))\n        return datetime(day.year, day.month, day.day, h, m, tzinfo=ZoneInfo(tz))\n    a, b = make(start_day, start), make(end_day, end)\n    if b <= a:\n        b += timedelta(days=1)\n    if b <= datetime.now(timezone.utc):\n        return\n    events.append((a, b, country, title, desc))\n\n\ndef add_holiday_rules'''
@@ -80,7 +70,6 @@ def patch_generator():
             raise SystemExit("Could not locate add() helper")
         text = text.replace(marker, replacement, 1)
 
-    # Hungary: continuous Saturday-to-Sunday periods and holiday-eve-to-holiday periods.
     hungary_branch = '''        elif country == "Hungary":
             warning = " IMPORTANT: Temporary Hungarian government suspensions or partial releases may change this specific restriction. Check the latest official Hungarian information before dispatch."
             if d.weekday() == 5:
@@ -94,7 +83,6 @@ def patch_generator():
                 add_span(E,country,"HGV ban — public holiday",prev,"22:00",d,"22:00",">7.5t; public-holiday and consecutive-holiday rules apply." + warning)'''
     text = replace_branch(text, "Hungary", hungary_branch)
 
-    # Czechia: statutory road scope and the 3.5t-with-trailer class.
     czech_branch = '''        elif country == "Czech Republic":
             scope = ">7.5t, plus vehicles over 3.5t with a trailer/semi-trailer, on motorways and Class I roads; statutory exemptions apply."
             if d.weekday() == 6 or h:
@@ -106,7 +94,6 @@ def patch_generator():
                     add(E,country,"HGV ban — summer Saturday",d,"07:00","13:00",scope)'''
     text = replace_branch(text, "Czech Republic", czech_branch)
 
-    # Poland: statutory traffic-ban holiday list plus summer restrictions.
     poland_branch = '''        elif country == "Poland":
             restricted_holidays = {
                 x for x in hol
@@ -153,9 +140,6 @@ def patch_generator():
                     add(E,country,"HGV ban — summer Sunday",d,"08:00","22:00",">12t permissible maximum mass; nationwide summer restriction. Statutory exemptions apply.")'''
     text = replace_branch(text, "Poland", poland_branch)
 
-    # Slovenia: Good Friday is a statutory HGV restriction but is not exposed as
-    # a public holiday by every holidays-library version. Add it explicitly so
-    # the recurring feed cannot silently omit the 14:00-22:00 Good Friday rule.
     slovenia_branch = '''        elif country == "Slovenia":
             named_holiday = holiday_name(country, d) if h else None
             if d.weekday() == 6:
@@ -176,7 +160,7 @@ def patch_generator():
             c = year % 100
             ee = b // 4
             f = b % 4
-            g = (b + 8) % 25
+            g = (b + 8) // 25
             hh = (b - g + 1) // 3
             i = (19 * a + b - ee - hh + 15) % 30
             k = c // 4
