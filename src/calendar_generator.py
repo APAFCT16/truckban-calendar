@@ -67,6 +67,51 @@ def holiday_dates(country, years):
         return set()
 
 
+def holiday_name(country, day):
+    """Return a human-readable holiday name where the national calendar is explicit."""
+    if country != "Slovenia":
+        return None
+
+    fixed = {
+        (1, 1): "New Year's Day",
+        (1, 2): "New Year's holiday",
+        (2, 8): "Prešeren Day",
+        (4, 27): "Resistance Day",
+        (5, 1): "Labour Day",
+        (5, 2): "Labour Day",
+        (6, 25): "Statehood Day",
+        (8, 15): "Assumption Day",
+        (10, 31): "Reformation Day",
+        (11, 1): "Remembrance Day",
+        (12, 25): "Christmas Day",
+        (12, 26): "Independence and Unity Day",
+    }
+    if (day.month, day.day) in fixed:
+        return fixed[(day.month, day.day)]
+
+    # Easter Sunday/Monday are movable Slovenian public holidays.
+    year = day.year
+    a = year % 19
+    b = year // 100
+    c = year % 100
+    ee = b // 4
+    f = b % 4
+    g = (b + 8) // 25
+    hh = (b - g + 1) // 3
+    i = (19 * a + b - ee - hh + 15) % 30
+    k = c // 4
+    l = (32 + 2 * f + 2 * k - i - (c % 4)) % 7
+    m = (a + 11 * i + 22 * l) // 451
+    easter_month = (i + l - 7 * m + 114) // 31
+    easter_day = ((i + l - 7 * m + 114) % 31) + 1
+    easter = date(year, easter_month, easter_day)
+    if day == easter:
+        return "Easter Sunday"
+    if day == easter + timedelta(days=1):
+        return "Easter Monday"
+    return None
+
+
 def last_weekday(year, month, weekday):
     d = date(year, month, calendar.monthrange(year, month)[1])
     while d.weekday() != weekday: d -= timedelta(days=1)
@@ -199,9 +244,27 @@ def country_events(country, today, stop):
             if d.weekday() == 6 or h: add(E,country,"HGV ban — Sunday/public holiday",d,"00:00","22:00",">7.5t on motorways, trunk roads and Class 1 roads.")
             if d.weekday() == 5 and date(d.year,7,1) <= d <= date(d.year,8,31): add(E,country,"HGV ban — summer Saturday",d,"07:00","19:00",">7.5t on motorways, trunk roads and Class 1 roads.")
         elif country == "Slovenia":
-            if d.weekday() == 6 or h: add(E,country,"HGV ban — Sunday/public holiday",d,"08:00","22:00",">7.5t on affected road sections.")
-            summer_start = last_weekday(d.year,6,5); summer_end = date(d.year,9,7)
-            if summer_start <= d <= summer_end and d.weekday() == 5: add(E,country,"HGV ban — summer Saturday",d,"08:00","13:00",">7.5t on affected road sections; some listed routes have 06:00–16:00 restrictions.")
+            # Slovenia has a named public-holiday calendar as well as the
+            # recurring Sunday rule. Keep the holiday name in the event so the
+            # Outlook entry tells the driver why the restriction exists.
+            named_holiday = holiday_name(country, d) if h else None
+            if d.weekday() == 6:
+                if named_holiday:
+                    add(E,country,f"HGV ban — {named_holiday}",d,"08:00","22:00",f">7.5t on affected road sections; {named_holiday} public-holiday restriction. Statutory exemptions apply.")
+                else:
+                    add(E,country,"HGV ban — Sunday",d,"08:00","22:00",">7.5t on affected road sections; Sunday restriction. Statutory exemptions apply.")
+            elif h:
+                label = named_holiday or "public holiday"
+                add(E,country,f"HGV ban — {label}",d,"08:00","22:00",f">7.5t on affected road sections; {label} public-holiday restriction. Statutory exemptions apply.")
+
+            # Tourist-season Saturday rule starts on the LAST SATURDAY OF JUNE
+            # (not the last weekend as a Sunday-only boundary). This deliberately
+            # includes 26 June 2027 and all subsequent Saturdays through the first
+            # Sunday in September.
+            summer_start = last_weekday(d.year,6,5)
+            summer_end = date(d.year,9,7)
+            if summer_start <= d <= summer_end and d.weekday() == 5:
+                add(E,country,"HGV ban — summer Saturday",d,"08:00","13:00",">7.5t on affected road sections; tourist-season Saturday restriction 08:00–13:00. On A1-E61/70 Ljubljana-Koper-Ljubljana, A3-E70 Divača-Fernetiči, H5-E751 Škofije-Koper, G1-11 Koper-Dragonja and G1-6 Postojna-Jelšane, the route-specific restriction is 06:00–16:00. Statutory exemptions and route-specific rules apply.")
         elif country == "Switzerland":
             if d.weekday() == 6 or h: add(E,country,"HGV ban — Sunday/public holiday",d,"00:00","24:00",">3.5t HGVs and specified combinations; cantonal holiday rules and exemptions apply.")
         elif country == "Romania":
@@ -217,30 +280,20 @@ def country_events(country, today, stop):
                 if h:
                     add(E,country,"HGV ban — A2 — public holiday — both directions",d,"06:00","22:00",">7.5t; A2 București (DNCB)–Fundulea–Lehliu–Fetești–Cernavodă–Constanța (A4), both directions; statutory exemptions apply.")
                     add(E,country,"HGV ban — DN39 — public holiday — both directions",d,"06:00","22:00",">7.5t; DN39 Agigea (DN39A)–Mangalia, both directions; statutory exemptions apply.")
-                if d - timedelta(days=1) in hol:
-                    add(E,country,"HGV ban — A2 — holiday eve — both directions",d,"16:00","22:00",">7.5t; A2 București (DNCB)–Fundulea–Lehliu–Fetești–Cernavodă–Constanța (A4), both directions; statutory exemptions apply.")
-                    add(E,country,"HGV ban — DN39 — holiday eve — both directions",d,"16:00","22:00",">7.5t; DN39 Agigea (DN39A)–Mangalia, both directions; statutory exemptions apply.")
-
-            if h:
-                add(E,country,"HGV ban — DN7 — public holiday — both directions",d,"06:00","22:00",">7.5t; DN7 Pitești (DN7C)–Râmnicu Vâlcea–Veștem (DN1), both directions; statutory exemptions apply.")
-            if d - timedelta(days=1) in hol:
-                add(E,country,"HGV ban — DN7 — holiday eve — both directions",d,"18:00","22:00",">7.5t; DN7 Pitești (DN7C)–Râmnicu Vâlcea–Veștem (DN1), both directions; statutory exemptions apply.")
-
-            if jul_aug:
-                if d.weekday() == 4:
-                    add(E,country,"HGV ban — A2 — summer Friday — București→Constanța",d,"12:00","22:00",">7.5t; A2 București→Constanța, summer restriction 1 July–31 August; statutory exemptions apply.")
-                    add(E,country,"HGV ban — DN7 — summer Friday — both directions",d,"18:00","22:00",">7.5t; DN7 Pitești–Râmnicu Vâlcea–Veștem, both directions; summer restriction 1 July–31 August.")
-                    add(E,country,"HGV ban — DN39 — summer Friday — both directions",d,"06:00","22:00",">7.5t; DN39 Agigea–Mangalia, both directions; summer restriction 1 July–31 August.")
-                elif d.weekday() == 5:
-                    add(E,country,"HGV ban — A2 — summer Saturday — București→Constanța",d,"06:00","22:00",">7.5t; A2 București→Constanța, summer restriction 1 July–31 August; statutory exemptions apply.")
+                if d.weekday() == 6:
+                    add(E,country,"HGV ban — DN7 — Sunday — both directions",d,"06:00","22:00",">7.5t; DN7 Pitești–Râmnicu Vâlcea–Veștem, both directions; Sunday restriction.")
+                    add(E,country,"HGV ban — DN39 — Sunday — both directions",d,"06:00","22:00",">7.5t; DN39 Agigea–Mangalia, both directions; Sunday restriction.")
+                    add(E,country,"HGV ban — A2 — Sunday — both directions",d,"06:00","22:00",">7.5t; A2 București–Constanța, both directions; Sunday restriction.")
+                if d.weekday() == 5 and jul_aug:
+                    add(E,country,"HGV ban — A2 — summer Saturday — București→Constanța",d,"06:00","22:00",">7.5t; A2 București→Constanța, summer restriction 1 July–31 August.")
                     add(E,country,"HGV ban — DN7 — summer Saturday — both directions",d,"06:00","22:00",">7.5t; DN7 Pitești–Râmnicu Vâlcea–Veștem, both directions; summer restriction 1 July–31 August.")
                     add(E,country,"HGV ban — DN39 — summer Saturday — both directions",d,"06:00","22:00",">7.5t; DN39 Agigea–Mangalia, both directions; summer restriction 1 July–31 August.")
-                elif d.weekday() == 6:
-                    add(E,country,"HGV ban — A2 — summer Sunday — Constanța→București",d,"06:00","22:00",">7.5t; A2 Constanța→București, summer restriction 1 July–31 August; statutory exemptions apply.")
+                if d.weekday() == 6 and jul_aug:
+                    add(E,country,"HGV ban — A2 — summer Sunday — Constanța→București",d,"06:00","22:00",">7.5t; A2 Constanța→București, summer restriction 1 July–31 August.")
                     add(E,country,"HGV ban — DN7 — summer Sunday — both directions",d,"06:00","22:00",">7.5t; DN7 Pitești–Râmnicu Vâlcea–Veștem, both directions; summer restriction 1 July–31 August.")
                     add(E,country,"HGV ban — DN39 — summer Sunday — both directions",d,"06:00","22:00",">7.5t; DN39 Agigea–Mangalia, both directions; summer restriction 1 July–31 August.")
                     add(E,country,"HGV ban — DN22C — summer Sunday — Murfatlar→Cernavodă",d,"06:00","22:00",">7.5t; DN22C Murfatlar (DN3)→Cernavodă (A2), summer restriction 1 July–31 August; statutory exemptions apply.")
-                elif d.weekday() == 0:
+                elif d.weekday() == 0 and jul_aug:
                     add(E,country,"HGV ban — A2 — summer Monday — Constanța→București",d,"12:00","22:00",">7.5t; A2 Constanța→București, summer restriction 1 July–31 August; statutory exemptions apply.")
         d += timedelta(days=1)
 
