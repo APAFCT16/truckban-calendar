@@ -168,6 +168,10 @@ def country_events(country, today, stop):
             if h and d.weekday() in (6, 0):
                 preceding_friday = d - timedelta(days=(d.weekday() + 3) % 7)
                 add(E,country,"HGV ban — pre-holiday Friday",preceding_friday,"15:00","23:00",scope)
+
+            # Separate standing Sunday restriction on state road D2.
+            if d.weekday() == 6:
+                add(E,country,"HGV ban — D2 Varaždin–Dubrava Križovljanska",d,"06:00","22:00",">7.5t HGVs, with or without trailer, on state road D2 from Varaždin to GP Dubrava Križovljanska. Local residents/businesses in the D2 zone and specified supply vehicles are exempt under the Croatian order.")
         elif country == "Hungary":
             if d.weekday() == 5:
                 if date(d.year,7,1) <= d <= date(d.year,8,31):
