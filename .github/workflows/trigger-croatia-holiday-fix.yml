@@ -1,0 +1,92 @@
+name: Apply Croatia special holiday rules
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/trigger-croatia-holiday-fix.yml
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  fix-and-rerun:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Patch Croatia special holiday rules
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path("src/calendar_generator.py")
+          text = p.read_text(encoding="utf-8")
+
+          if "Croatia special holiday rules — Friday/Saturday to Sunday" in text:
+              print("Croatia special holiday rules already present")
+              raise SystemExit(0)
+
+          old = '''        elif country == "Croatia":
+            if date(d.year,6,15) <= d <= date(d.year,9,15):
+                if d.weekday() == 5: add(E,country,"HGV ban — summer Saturday",d,"04:00","14:00",">7.5t or >14m on specified main roads.")
+                if d.weekday() == 6: add(E,country,"HGV ban — summer Sunday",d,"12:00","23:00",">7.5t or >14m on specified main roads.")
+            if h and d.weekday() != 6: add(E,country,"HGV ban — public holiday",d,"14:00","23:00",">7.5t or >14m on specified main roads.")
+'''
+
+          if old not in text:
+              raise SystemExit("Could not locate expected Croatia generator block")
+
+          new = '''        elif country == "Croatia":
+            if date(d.year,6,15) <= d <= date(d.year,9,15):
+                if d.weekday() == 5: add(E,country,"HGV ban — summer Saturday",d,"04:00","14:00",">7.5t or >14m on specified main roads.")
+                if d.weekday() == 6: add(E,country,"HGV ban — summer Sunday",d,"12:00","23:00",">7.5t or >14m on specified main roads.")
+
+            # Croatia special holiday rules from the HGV restriction order.
+            # Good Friday and holiday eves: 15:00-23:00.
+            # Last day of a holiday: 14:00-23:00.
+            # If the holiday/last holiday day is Friday or Saturday, the
+            # following Sunday is also restricted 12:00-23:00.
+            # If the holiday is Sunday or Monday, the preceding Friday is
+            # restricted 15:00-23:00.
+            if h:
+                add(E,country,"HGV ban — public holiday",d,"14:00","23:00",">7.5t or >14m on specified main roads.")
+
+            tomorrow = d + timedelta(days=1)
+            yesterday = d - timedelta(days=1)
+            good_friday = (d + timedelta(days=2)) in hol and (d + timedelta(days=2)).weekday() == 6
+
+            if tomorrow in hol and d.weekday() not in (5, 6):
+                add(E,country,"HGV ban — eve of public holiday",d,"15:00","23:00",">7.5t or >14m on specified main roads.")
+
+            if d.weekday() == 6 and yesterday in hol and yesterday.weekday() in (4, 5):
+                add(E,country,"HGV ban — Sunday following Friday/Saturday holiday",d,"12:00","23:00",">7.5t or >14m on specified main roads.")
+
+            if d.weekday() == 4 and tomorrow in hol and tomorrow.weekday() in (6, 0) and not good_friday:
+                add(E,country,"HGV ban — Friday before Sunday/Monday holiday",d,"15:00","23:00",">7.5t or >14m on specified main roads.")
+
+            if good_friday:
+                add(E,country,"HGV ban — Good Friday",d,"15:00","23:00",">7.5t or >14m on specified main roads.")
+
+            if d.weekday() == 6:
+                add(E,country,"HGV ban — D2 Varaždin–Dubrava Križovljanska",d,"06:00","22:00",">7.5t HGVs, with or without trailer, on state road D2 from Varaždin to GP Dubrava Križovljanska. Local residents/businesses in the D2 zone and specified supply vehicles are exempt under the Croatian order.")
+'''
+
+          p.write_text(text.replace(old, new, 1), encoding="utf-8")
+          print("Patched Croatia special holiday rules")
+          PY
+
+      - name: Commit generator fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/calendar_generator.py
+          git commit -m "Encode Croatian special holiday restrictions" || echo "No source changes to commit"
+          git push
+
+      - name: Re-run calendar Action
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run "Update TruckBAN Calendar" --ref main
