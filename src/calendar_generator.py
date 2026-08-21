@@ -266,7 +266,9 @@ def country_events(country, today, stop):
             if summer_start <= d <= summer_end and d.weekday() == 5:
                 add(E,country,"HGV ban — summer Saturday",d,"08:00","13:00",">7.5t on affected road sections; tourist-season Saturday restriction 08:00–13:00. On A1-E61/70 Ljubljana-Koper-Ljubljana, A3-E70 Divača-Fernetiči, H5-E751 Škofije-Koper, G1-11 Koper-Dragonja and G1-6 Postojna-Jelšane, the route-specific restriction is 06:00–16:00. Statutory exemptions and route-specific rules apply.")
         elif country == "Switzerland":
-            if d.weekday() == 6 or h: add(E,country,"HGV ban — Sunday/public holiday",d,"00:00","24:00",">3.5t HGVs and specified combinations; cantonal holiday rules and exemptions apply.")
+            scope = ">3.5t permissible total weight; articulated motor vehicles over 5t permissible total towing weight; or vehicles towing a trailer over 3.5t permissible total weight. Statutory exemptions apply."
+            if d.weekday() == 6 or h:
+                add(E,country,"HGV ban — Sunday/public holiday",d,"00:00","22:00",scope)
         elif country == "Romania":
             # Romania is route-specific. The recurring national feed represents
             # only the four road sectors listed in Annex 1 to Order 1249/132/2018:
