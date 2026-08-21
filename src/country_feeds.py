@@ -58,12 +58,13 @@ def fix_hungary_feed(ics):
 
 
 def main():
-    # Greece is implemented by a runtime patch because the main generator is
-    # also used by the combined feed. Apply that same patch here so running
-    # this country-feed generator directly can never silently create an empty
-    # Greece.ics from the unpatched source tree.
-    from greece_rules_patch import patch_generator
-    patch_generator()
+    # Apply Switzerland directly here rather than relying on the Greece patch
+    # to install a Switzerland dependency as a side effect. This keeps the
+    # country-feed generator safe when it is run on its own.
+    from switzerland_holiday_rules_patch import patch_generator as patch_switzerland_generator
+    from greece_rules_patch import patch_generator as patch_greece_generator
+    patch_switzerland_generator()
+    patch_greece_generator()
     from calendar_generator import load_countries, country_events, make_ics
 
     countries = load_countries()
