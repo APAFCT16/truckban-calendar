@@ -44,6 +44,8 @@ jobs:
         run: python src/spain_n230_sunday_patch.py
       - name: Apply verified Slovenia rules
         run: python src/slovenia_rules_patch.py
+      - name: Apply verified Switzerland holiday rules
+        run: python src/switzerland_holiday_rules_patch.py
       - name: Apply verified Greece rules
         run: python src/greece_rules_patch.py
       - name: Generate calendar
@@ -84,6 +86,7 @@ jobs:
           test -s public/countries/Bulgaria.ics
           test -s public/countries/Croatia.ics
           test -s public/countries/Slovenia.ics
+          test -s public/countries/Switzerland.ics
           test -s public/countries/Greece.ics
           grep -q "X-WR-CALNAME:TruckBAN — France" public/countries/France.ics
           grep -q "X-WR-CALNAME:TruckBAN — Germany" public/countries/Germany.ics
@@ -99,6 +102,7 @@ jobs:
           grep -q "X-WR-CALNAME:TruckBAN — Bulgaria" public/countries/Bulgaria.ics
           grep -q "X-WR-CALNAME:TruckBAN — Croatia" public/countries/Croatia.ics
           grep -q "X-WR-CALNAME:TruckBAN — Slovenia" public/countries/Slovenia.ics
+          grep -q "X-WR-CALNAME:TruckBAN — Switzerland" public/countries/Switzerland.ics
           grep -q "X-WR-CALNAME:TruckBAN — Greece" public/countries/Greece.ics
           ! grep -q "BEGIN:VEVENT" public/countries/Serbia.ics
           ! grep -q "Serbia — HGV ban" public/countries/Serbia.ics
@@ -138,6 +142,10 @@ jobs:
           grep -q "DTSTART:20260822T040000Z" public/countries/Slovenia.ics
           grep -q "DTEND:20260822T140000Z" public/countries/Slovenia.ics
           grep -q "HGV ban — Good Friday" public/countries/Slovenia.ics
+          # Switzerland: 2026 Christmas falls on Friday, so 26 December is not a nationwide HGV-ban holiday.
+          grep -q "DTSTART:20261224T230000Z" public/countries/Switzerland.ics
+          ! grep -q "DTSTART:20261226T230000Z" public/countries/Switzerland.ics
+          ! grep -q "DTSTART:20261231T230000Z" public/countries/Switzerland.ics
           # Greece: Friday 16:00-21:00 local on 21 Aug 2026 = 13:00-18:00 UTC.
           grep -q "DTSTART:20260821T130000Z" public/countries/Greece.ics
           grep -q "DTEND:20260821T180000Z" public/countries/Greece.ics
