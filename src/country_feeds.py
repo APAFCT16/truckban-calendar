@@ -1,7 +1,6 @@
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
-from calendar_generator import load_countries, country_events, make_ics
 
 PUBLIC_DIR = Path("public")
 COUNTRY_DIR = PUBLIC_DIR / "countries"
@@ -58,6 +57,14 @@ def fix_hungary_feed(ics):
 
 
 def main():
+    # Greece is implemented by a runtime patch because the main generator is
+    # also used by the combined feed. Apply that same patch here so running
+    # this country-feed generator directly can never silently create an empty
+    # Greece.ics from the unpatched source tree.
+    from greece_rules_patch import patch_generator
+    patch_generator()
+    from calendar_generator import load_countries, country_events, make_ics
+
     countries = load_countries()
     today = datetime.now(timezone.utc).date()
     stop = date(today.year + 1, 12, 31)
