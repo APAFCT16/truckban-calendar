@@ -5,6 +5,8 @@ GEN = Path("src/calendar_generator.py")
 
 def patch_generator():
     text = GEN.read_text(encoding="utf-8")
+    if 'if country == "Switzerland":\n        # ASTRA identifies only these days' in text:
+        return
 
     marker = '''def holiday_dates(country, years):\n    try:\n        import holidays\n'''
     if marker not in text:
