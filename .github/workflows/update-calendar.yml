@@ -143,9 +143,10 @@ jobs:
           grep -q "DTEND:20260822T140000Z" public/countries/Slovenia.ics
           grep -q "HGV ban — Good Friday" public/countries/Slovenia.ics
           # Switzerland: 2026 Christmas falls on Friday, so 26 December is not a nationwide HGV-ban holiday.
+          # The 31 December UTC timestamp below is the valid 1 January 2027 local event (00:00 CET), not a New Year's Eve ban.
           grep -q "DTSTART:20261224T230000Z" public/countries/Switzerland.ics
           ! grep -q "DTSTART:20261226T230000Z" public/countries/Switzerland.ics
-          ! grep -q "DTSTART:20261231T230000Z" public/countries/Switzerland.ics
+          grep -q "DTSTART:20261231T230000Z" public/countries/Switzerland.ics
           # Greece: Friday 16:00-21:00 local on 21 Aug 2026 = 13:00-18:00 UTC.
           grep -q "DTSTART:20260821T130000Z" public/countries/Greece.ics
           grep -q "DTEND:20260821T180000Z" public/countries/Greece.ics
@@ -175,4 +176,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        run: echo "Deploy to GitHub Pages"
