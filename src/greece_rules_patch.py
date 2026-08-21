@@ -1,4 +1,5 @@
 from pathlib import Path
+import switzerland_holiday_rules_patch
 
 GEN = Path("src/calendar_generator.py")
 FEEDS = Path("src/country_feeds.py")
@@ -8,6 +9,7 @@ GREECE_DESC = ('    "Greece": "Greece: recurring HGV restrictions apply to vehic
 
 
 def patch_generator():
+    switzerland_holiday_rules_patch.patch_generator()
     text = GEN.read_text(encoding="utf-8")
 
     if '"Greece": "Europe/Athens"' not in text:
