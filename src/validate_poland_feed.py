@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -80,8 +80,8 @@ if __name__ == "__main__":
     # while remaining valid as the publication window moves forward.
     friday = next_event_date(E, "Poland — HGV ban — summer Friday", 18, 22, today)
     find(E, "Poland — HGV ban — summer Friday", friday, 18, 22)
-    find(E, "Poland — HGV ban — summer Saturday", friday.replace(day=friday.day + 1) if False else date.fromordinal(friday.toordinal() + 1), 8, 14)
-    find(E, "Poland — HGV ban — summer Sunday", date.fromordinal(friday.toordinal() + 2), 8, 22)
+    find(E, "Poland — HGV ban — summer Saturday", friday + timedelta(days=1), 8, 14)
+    find(E, "Poland — HGV ban — summer Sunday", friday + timedelta(days=2), 8, 22)
 
     # Holiday eve and holiday across the October/November DST boundary.
     # These remain explicit because they test both the statutory holiday logic
