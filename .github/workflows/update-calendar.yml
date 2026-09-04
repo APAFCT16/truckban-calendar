@@ -60,6 +60,8 @@ jobs:
         run: python src/validate_poland_feed.py
       - name: Validate Serbia feed
         run: python src/validate_serbia_feed.py
+      - name: Validate rolling Slovenia and Greece seasonal feeds
+        run: python src/validate_seasonal_feeds.py
       - name: Diagnose generated Portugal feed
         run: |
           echo '--- Portugal VCI event(s) ---'
@@ -137,24 +139,12 @@ jobs:
           grep -q "20260913" public/countries/Croatia.ics
           grep -q "HGV ban — summer Sunday" public/countries/Croatia.ics
           grep -q "7.5t" public/countries/Croatia.ics
-          grep -q "DTSTART:20260822T060000Z" public/countries/Slovenia.ics
-          grep -q "DTEND:20260822T110000Z" public/countries/Slovenia.ics
-          grep -q "DTSTART:20260822T040000Z" public/countries/Slovenia.ics
-          grep -q "DTEND:20260822T140000Z" public/countries/Slovenia.ics
           grep -q "HGV ban — Good Friday" public/countries/Slovenia.ics
           # Switzerland: 2026 Christmas falls on Friday, so 26 December is not a nationwide HGV-ban holiday.
           # The 31 December UTC timestamp below is the valid 1 January 2027 local event (00:00 CET), not a New Year's Eve ban.
           grep -q "DTSTART:20261224T230000Z" public/countries/Switzerland.ics
           ! grep -q "DTSTART:20261226T230000Z" public/countries/Switzerland.ics
           grep -q "DTSTART:20261231T230000Z" public/countries/Switzerland.ics
-          # Greece: Friday 16:00-21:00 local on 21 Aug 2026 = 13:00-18:00 UTC.
-          grep -q "DTSTART:20260821T130000Z" public/countries/Greece.ics
-          grep -q "DTEND:20260821T180000Z" public/countries/Greece.ics
-          grep -q "HGV ban — summer Friday outbound" public/countries/Greece.ics
-          # Greece Sunday 15:00-22:00 local on 23 Aug 2026 = 12:00-19:00 UTC.
-          grep -q "DTSTART:20260823T120000Z" public/countries/Greece.ics
-          grep -q "DTEND:20260823T190000Z" public/countries/Greece.ics
-          grep -q "HGV ban — summer Sunday inbound" public/countries/Greece.ics
           ! grep -R -q "DTSTART;TZID=" public --include='*.ics'
           ! grep -R -q "DTEND;TZID=" public --include='*.ics'
       - name: Upload TruckBAN diagnostic data
