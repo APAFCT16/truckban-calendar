@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -46,81 +46,58 @@ def first_future(path: Path, summary: str):
     return min(matches, key=lambda item: item[0])
 
 
-def assert_window(path: Path, summary: str, tz_name: str, expected_start: str, expected_end: str):
+def utc_at(day, tz_name, hm):
+    h, m = map(int, hm.split(":"))
+    local = datetime(day.year, day.month, day.day, h, m, tzinfo=ZoneInfo(tz_name))
+    return local.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+
+def check_event(path, summary, tz_name, expected_start, expected_end):
     start, event = first_future(path, summary)
-    if event.get("DTEND") != expected_end:
-        raise AssertionError(
-            f"{path}: {summary}: expected DTEND {expected_end}, got {event.get('DTEND')!r}"
-        )
     local = start.astimezone(ZoneInfo(tz_name))
-    if local.strftime("%H:%M") != expected_start:
+    actual_start = local.strftime("%H:%M")
+    if actual_start != expected_start:
+        raise AssertionError(f"{path}: {summary}: expected local start {expected_start}, got {actual_start}")
+    if event.get("DTEND") != utc_at(start.date(), tz_name, expected_end):
         raise AssertionError(
-            f"{path}: {summary}: expected local start {expected_start}, got {local.strftime('%H:%M')}"
+            f"{path}: {summary}: expected DTEND {utc_at(start.date(), tz_name, expected_end)}, "
+            f"got {event.get('DTEND')!r}"
         )
-    return start.date(), event
+    return start.date()
 
 
 def main():
     slovenia = ROOT / "Slovenia.ics"
-    sl_start, _ = assert_window(
-        slovenia,
-        "HGV ban — summer Saturday",
-        "Europe/Ljubljana",
-        "08:00",
-        None,
-    )
-    # The general Slovenia event is 08:00-13:00 local; verify its UTC end below.
-    sl_event = first_future(slovenia, "HGV ban — summer Saturday")[1]
-    if sl_event.get("DTEND") != _utc_end(sl_start, "Europe/Ljubljana", "13:00"):
-        raise AssertionError("Slovenia general summer Saturday has the wrong end time")
-
-    route_start, route_event = assert_window(
+    sl_date = check_event(slovenia, "HGV ban — summer Saturday", "Europe/Ljubljana", "08:00", "13:00")
+    route_date = check_event(
         slovenia,
         "HGV ban — summer Saturday — listed routes",
         "Europe/Ljubljana",
         "06:00",
-        _utc_end(sl_start, "Europe/Ljubljana", "16:00"),
+        "16:00",
     )
-    if route_start != sl_start:
-        raise AssertionError("Slovenia route-specific and general summer Saturday events are on different dates")
-
-    if sl_start.weekday() != 5:
-        raise AssertionError("Slovenia summer Saturday validation found a non-Saturday event")
+    if sl_date != route_date or sl_date.weekday() != 5:
+        raise AssertionError("Slovenia rolling summer Saturday events do not align on the same Saturday")
 
     greece = ROOT / "Greece.ics"
-    fri_date, _ = assert_window(
+    fri_date = check_event(
         greece,
         "HGV ban — summer Friday outbound",
         "Europe/Athens",
         "16:00",
-        _utc_end(fri_date_placeholder := date.today(), "Europe/Athens", "21:00"),
+        "21:00",
     )
-    # Recompute the expected end for the actual generated Friday date.
-    fri_event = first_future(greece, "HGV ban — summer Friday outbound")[1]
-    if fri_event.get("DTEND") != _utc_end(fri_date, "Europe/Athens", "21:00"):
-        raise AssertionError("Greece summer Friday outbound has the wrong end time")
-    if fri_date.weekday() != 4:
-        raise AssertionError("Greece summer Friday validation found a non-Friday event")
-
-    sun_date, sun_event = assert_window(
+    sun_date = check_event(
         greece,
         "HGV ban — summer Sunday inbound",
         "Europe/Athens",
         "15:00",
-        _utc_end(first_future(greece, "HGV ban — summer Sunday inbound")[0].date(), "Europe/Athens", "22:00"),
+        "22:00",
     )
-    if sun_date.weekday() != 6:
-        raise AssertionError("Greece summer Sunday validation found a non-Sunday event")
-    if sun_date <= fri_date:
-        raise AssertionError("Greece first future Sunday is not after the first future Friday")
+    if fri_date.weekday() != 4 or sun_date.weekday() != 6 or sun_date <= fri_date:
+        raise AssertionError("Greece rolling summer Friday/Sunday events are not on the expected weekdays/order")
 
-    print(f"Seasonal rolling validation passed: Slovenia Saturday {sl_start}; Greece Friday {fri_date}, Sunday {sun_date}.")
-
-
-def _utc_end(day: date, tz_name: str, hm: str) -> str:
-    h, m = map(int, hm.split(":"))
-    local = datetime(day.year, day.month, day.day, h, m, tzinfo=ZoneInfo(tz_name))
-    return local.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    print(f"Seasonal rolling validation passed: Slovenia Saturday {sl_date}; Greece Friday {fri_date}, Sunday {sun_date}.")
 
 
 if __name__ == "__main__":
