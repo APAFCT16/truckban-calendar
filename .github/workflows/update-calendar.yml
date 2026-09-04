@@ -54,6 +54,8 @@ jobs:
         run: python src/calendar_generator.py
       - name: Generate country feeds
         run: python src/country_feeds.py
+      - name: Rebuild Slovenia country feed from canonical events
+        run: python src/repair_slovenia_feed.py
       - name: Remove redundant Poland 15 August 2027 summer-Sunday event
         run: python src/poland_feed_cleanup.py
       - name: Make ICS feeds compatible with Classic Outlook
