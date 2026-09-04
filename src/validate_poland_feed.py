@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime, timezone, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -49,17 +49,43 @@ def find(events_list, summary, local_date, start_hour, end_hour):
     raise SystemExit(f"Missing Poland event: {summary} {local_date} {start_hour:02d}:00-{end_hour:02d}:00 local")
 
 
+def next_event_date(events_list, summary, start_hour, end_hour, today):
+    """Return the first generated occurrence of a rule on or after today."""
+    candidates = []
+    for e in events_list:
+        if e.get("SUMMARY") != summary:
+            continue
+        start = utc_to_local(e["DTSTART"])
+        end = utc_to_local(e["DTEND"])
+        if start.date() < today:
+            continue
+        if start.hour == start_hour and end.date() == start.date() and end.hour == end_hour:
+            candidates.append(start)
+    if not candidates:
+        raise SystemExit(f"No future Poland event found for {summary}")
+    return min(candidates).date()
+
+
 if __name__ == "__main__":
-    from datetime import date
-
     E = events()
+    today = datetime.now(timezone.utc).astimezone(WARSAW).date()
 
-    # Future summer dates in the generated window. Warsaw is UTC+2 in August.
-    find(E, "Poland — HGV ban — summer Friday", date(2026, 8, 21), 18, 22)
-    find(E, "Poland — HGV ban — summer Saturday", date(2026, 8, 22), 8, 14)
-    find(E, "Poland — HGV ban — summer Sunday", date(2026, 8, 23), 8, 22)
+    # The generator is deliberately rolling: it removes events whose end is
+    # already in the past. Do not pin validation to a historical date such as
+    # 21 August 2026, because that makes every later scheduled build fail even
+    # when the Poland summer rules are being generated correctly.
+    #
+    # Instead, validate the first generated summer Friday on/after today and
+    # its following Saturday and Sunday. This preserves the rule/time checks
+    # while remaining valid as the publication window moves forward.
+    friday = next_event_date(E, "Poland — HGV ban — summer Friday", 18, 22, today)
+    find(E, "Poland — HGV ban — summer Friday", friday, 18, 22)
+    find(E, "Poland — HGV ban — summer Saturday", friday + timedelta(days=1), 8, 14)
+    find(E, "Poland — HGV ban — summer Sunday", friday + timedelta(days=2), 8, 22)
 
     # Holiday eve and holiday across the October/November DST boundary.
+    # These remain explicit because they test both the statutory holiday logic
+    # and UTC/local conversion in a non-summer timezone offset.
     find(E, "Poland — HGV ban — public holiday eve", date(2026, 11, 10), 18, 22)
     find(E, "Poland — HGV ban — public holiday", date(2026, 11, 11), 8, 22)
 
