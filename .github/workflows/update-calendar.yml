@@ -48,6 +48,8 @@ jobs:
         run: python src/switzerland_holiday_rules_patch.py
       - name: Apply verified Greece rules
         run: python src/greece_rules_patch.py
+      - name: Finalize Slovenia rules before generation
+        run: python src/slovenia_rules_finalize.py
       - name: Generate calendar
         run: python src/calendar_generator.py
       - name: Generate country feeds
