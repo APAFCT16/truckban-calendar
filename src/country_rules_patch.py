@@ -109,7 +109,7 @@ def patch_generator():
             cc = a % 100
             dd = bb // 4
             ee = bb % 4
-            ff = (bb + 8) // 25
+            ff = (bb + 8) % 25
             gg = (bb - ff + 1) // 3
             hh = (19 * aa + bb - dd - gg + 15) % 30
             ii = cc // 4
@@ -172,10 +172,16 @@ def patch_generator():
             if d == easter - timedelta(days=2):
                 add(E,country,"HGV ban — Good Friday",d,"14:00","22:00",">7.5t on affected road sections; Good Friday special restriction. Statutory exemptions apply.")
 
+            # Tourist season runs from the last Saturday of June through the
+            # first Sunday of September. The route-specific Saturday restriction
+            # is separate from the general Saturday window and must survive all
+            # generator patch ordering.
             summer_start = last_weekday(d.year,6,5)
-            summer_end = date(d.year,9,7)
+            first_sunday_september = 1 + ((6 - date(d.year,9,1).weekday()) % 7)
+            summer_end = date(d.year,9,first_sunday_september)
             if summer_start <= d <= summer_end and d.weekday() == 5:
-                add(E,country,"HGV ban — summer Saturday",d,"08:00","13:00",">7.5t on affected road sections; tourist-season Saturday restriction 08:00–13:00. On A1-E61/70 Ljubljana-Koper-Ljubljana, A3-E70 Divača-Fernetiči, H5-E751 Škofije-Koper, G1-11 Koper-Dragonja and G1-6 Postojna-Jelšane, the route-specific restriction is 06:00–16:00. Statutory exemptions and route-specific rules apply.")'''
+                add(E,country,"HGV ban — summer Saturday",d,"08:00","13:00",">7.5t on affected road sections; tourist-season Saturday restriction.")
+                add(E,country,"HGV ban — summer Saturday — listed routes",d,"06:00","16:00",">7.5t on A1-E61/70 Ljubljana-Koper-Ljubljana, A3-E70 Divača-Fernetiči, H5-E751 Škofije-Koper, G1-11 Koper-Dragonja and G1-6 Postojna-Jelšane; tourist-season route-specific restriction.")'''
     text = replace_branch(text, "Slovenia", slovenia_branch)
 
     GEN.write_text(text, encoding="utf-8")
