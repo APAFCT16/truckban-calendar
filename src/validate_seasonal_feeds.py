@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -26,7 +26,7 @@ def events(path: Path):
     return out
 
 
-def first_future(path: Path, summary: str):
+def matching_future(path: Path, summary: str, not_before=None):
     now = datetime.now(timezone.utc)
     matches = []
     for event in events(path):
@@ -39,10 +39,14 @@ def first_future(path: Path, summary: str):
             start = datetime.strptime(value, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
         except ValueError as exc:
             raise AssertionError(f"{path}: invalid DTSTART {value!r}") from exc
-        if start >= now:
-            matches.append((start, event))
+        if start < now:
+            continue
+        if not_before is not None and start.date() < not_before:
+            continue
+        matches.append((start, event))
     if not matches:
-        raise AssertionError(f"{path}: no future event found for {summary!r}")
+        qualifier = f" on/after {not_before}" if not_before is not None else ""
+        raise AssertionError(f"{path}: no future event found for {summary!r}{qualifier}")
     return min(matches, key=lambda item: item[0])
 
 
@@ -52,16 +56,16 @@ def utc_at(day, tz_name, hm):
     return local.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
-def check_event(path, summary, tz_name, expected_start, expected_end):
-    start, event = first_future(path, summary)
+def check_event(path, summary, tz_name, expected_start, expected_end, not_before=None):
+    start, event = matching_future(path, summary, not_before)
     local = start.astimezone(ZoneInfo(tz_name))
     actual_start = local.strftime("%H:%M")
     if actual_start != expected_start:
         raise AssertionError(f"{path}: {summary}: expected local start {expected_start}, got {actual_start}")
-    if event.get("DTEND") != utc_at(start.date(), tz_name, expected_end):
+    expected_dtend = utc_at(start.date(), tz_name, expected_end)
+    if event.get("DTEND") != expected_dtend:
         raise AssertionError(
-            f"{path}: {summary}: expected DTEND {utc_at(start.date(), tz_name, expected_end)}, "
-            f"got {event.get('DTEND')!r}"
+            f"{path}: {summary}: expected DTEND {expected_dtend}, got {event.get('DTEND')!r}"
         )
     return start.date()
 
@@ -75,6 +79,7 @@ def main():
         "Europe/Ljubljana",
         "06:00",
         "16:00",
+        not_before=sl_date,
     )
     if sl_date != route_date or sl_date.weekday() != 5:
         raise AssertionError("Slovenia rolling summer Saturday events do not align on the same Saturday")
@@ -93,6 +98,7 @@ def main():
         "Europe/Athens",
         "15:00",
         "22:00",
+        not_before=fri_date,
     )
     if fri_date.weekday() != 4 or sun_date.weekday() != 6 or sun_date <= fri_date:
         raise AssertionError("Greece rolling summer Friday/Sunday events are not on the expected weekdays/order")
