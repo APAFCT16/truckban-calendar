@@ -72,10 +72,13 @@ def check_event(path, summary, tz_name, expected_start, expected_end, not_before
 
 def main():
     slovenia = ROOT / "Slovenia.ics"
-    sl_date = check_event(slovenia, "HGV ban — summer Saturday", "Europe/Ljubljana", "08:00", "13:00")
+    # make_ics() prefixes every VEVENT summary with its country name, so the
+    # validator must match the actual published SUMMARY rather than the
+    # generator's internal event title.
+    sl_date = check_event(slovenia, "Slovenia — HGV ban — summer Saturday", "Europe/Ljubljana", "08:00", "13:00")
     route_date = check_event(
         slovenia,
-        "HGV ban — summer Saturday — listed routes",
+        "Slovenia — HGV ban — summer Saturday — listed routes",
         "Europe/Ljubljana",
         "06:00",
         "16:00",
@@ -87,14 +90,14 @@ def main():
     greece = ROOT / "Greece.ics"
     fri_date = check_event(
         greece,
-        "HGV ban — summer Friday outbound",
+        "Greece — HGV ban — summer Friday outbound",
         "Europe/Athens",
         "16:00",
         "21:00",
     )
     sun_date = check_event(
         greece,
-        "HGV ban — summer Sunday inbound",
+        "Greece — HGV ban — summer Sunday inbound",
         "Europe/Athens",
         "15:00",
         "22:00",
