@@ -109,7 +109,7 @@ def patch_generator():
             cc = a % 100
             dd = bb // 4
             ee = bb % 4
-            ff = (bb + 8) % 25
+            ff = (bb + 8) // 25
             gg = (bb - ff + 1) // 3
             hh = (19 * aa + bb - dd - gg + 15) % 30
             ii = cc // 4
